@@ -4,16 +4,16 @@ import type { ProtoDef } from "../../types.js";
 export const pstring: DataTypeImplementation<string, ProtoDef.Native.PStringArgs> = {
     read: (ctx) => {
         const length = ctx.read<number>(ctx.args.countType);
-        const buf = ctx.buffer.slice(ctx.offset, ctx.offset + length);
-        ctx.offset += length;
+        const buf = ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + length);
+        ctx.io.offset += length;
         return new TextDecoder(ctx.args.encoding).decode(buf);
     },
 
     write: (ctx, value) => {
         ctx.write(ctx.args.countType, value.length);
         const buf = new TextEncoder().encode(value);
-        new Uint8Array(ctx.buffer, ctx.offset, buf.byteLength).set(buf);
-        ctx.offset += buf.byteLength;
+        new Uint8Array(ctx.io.buffer, ctx.io.offset, buf.byteLength).set(buf);
+        ctx.io.offset += buf.byteLength;
     },
 
     size: (ctx, value) => {

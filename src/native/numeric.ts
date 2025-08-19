@@ -8,16 +8,16 @@ const dataViewImpl = (
 ): DataTypeImplementation<number | bigint> => {
     return {
         read(ctx) {
-            let n = ctx.view[getMethod](ctx.offset);
-            ctx.offset += size;
+            let n = new DataView(ctx.io.buffer)[getMethod](ctx.io.offset);
+            ctx.io.offset += size;
             return n;
         },
 
         write(ctx, value) {
             // Weird typescript error...
             type DataViewSetMethod = (byteOffset: number, value: number | bigint, littleEndian?: boolean) => void;
-            (ctx.view[setMethod] as DataViewSetMethod)(ctx.offset, value, littleEndian);
-            ctx.offset += size;
+            (new DataView(ctx.io.buffer)[setMethod] as DataViewSetMethod)(ctx.io.offset, value, littleEndian);
+            ctx.io.offset += size;
         },
 
         size: () => size,

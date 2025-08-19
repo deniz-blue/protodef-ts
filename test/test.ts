@@ -37,7 +37,7 @@ const value = {
     cute: true, // 1b
     num: 1, // i32, 4b
     username: "mrrp", // 4+1 b
-    hasFunnies: false, // 1b
+    hasFunnies: true, // 1b
     funnies: [ // compareTo:hasFunnies ; 1b count
         "" // 1b count, 0b len
     ],
@@ -54,11 +54,11 @@ const rwTest = <T>(type: ProtoDef.DataType, value: T) => {
     console.log("Packet size:", size);
     console.log("Writing packet");
     const buffer = new ArrayBuffer(size);
-    proto.writeDataType({ offset: 0, buffer, view: new DataView(buffer) }, type, value, value, "", []);
+    proto.writeDataType({ offset: 0, buffer }, type, value, value, "", []);
     console.log("Written packet");
     console.log("Packet buffer:", buffer);
     console.log("Reading packet");
-    const read = proto.readDataType({ offset: 0, buffer, view: new DataView(buffer) }, type, {}, "", []);
+    const read = proto.readDataType({ offset: 0, buffer }, type, {}, "", []);
     console.log("Read packet");
     console.log(typeof read);
     console.log(read);

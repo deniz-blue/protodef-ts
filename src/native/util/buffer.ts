@@ -5,8 +5,8 @@ export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferA
     read: (ctx) => {
         const length = ctx.read<number>(ctx.args.countType);
 
-        const buf = ctx.buffer.slice(ctx.offset, ctx.offset + length);
-        ctx.offset += length;
+        const buf = ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + length);
+        ctx.io.offset += length;
 
         return buf;
     },
@@ -14,8 +14,8 @@ export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferA
     write: (ctx, value) => {
         ctx.write(ctx.args.countType, value.byteLength);
 
-        new Uint8Array(ctx.buffer, ctx.offset, value.byteLength).set(new Uint8Array(value));
-        ctx.offset += value.byteLength;
+        new Uint8Array(ctx.io.buffer, ctx.io.offset, value.byteLength).set(new Uint8Array(value));
+        ctx.io.offset += value.byteLength;
     },
 
     size: (ctx, value) => {

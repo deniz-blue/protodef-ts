@@ -1,7 +1,7 @@
 import { NativeDataTypes } from "../native/index.js";
 import type { ProtoDef } from "../types.js";
 import { enterSpan, leaveSpan, logSpan } from "../utils/span.js";
-import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IOContext } from "./datatype.js";
+import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IO, IOContext } from "./datatype.js";
 
 export interface ProtocolNamespace {
     types: Map<string, ProtoDef.DataType>;
@@ -84,30 +84,22 @@ export class Protocol {
     }
 
     readDataType<Packet, Output>(
-        io: IOContext,
+        io: IO,
         dataType: ProtoDef.DataType,
         packet: Packet,
         namespace: string,
         path: string[],
     ): Output {
-        logSpan("readDataType()", { dataType, packet, path })
-
         const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
 
         const ctx: ImplReadContext<typeof typeArgs> = {
-            ...io,
-            get offset() {
-                return io.offset;
-            },
-            set offset(v: number) {
-                io.offset = v;
-            },
+            io,
             args: typeArgs,
             getValue: getValueFn(packet, path),
             read: <Reading>(ty: ProtoDef.DataType, key?: string): Reading => {
-                enterSpan(`Reading`, ty, `at offset ${io.offset}`);
+                enterSpan(`Reading ${ty} at offset ${io.offset}`, path);
                 let v = this.readDataType<Packet, Reading>(io, ty, packet, namespace, key ? [...path, key] : path);
-                leaveSpan(`Read`, v, `now at offset ${io.offset}`);
+                leaveSpan(`Read`, v, `at offset ${io.offset}`, path);
                 return v;
             },
         };
@@ -130,7 +122,7 @@ export class Protocol {
     }
 
     writeDataType<T, P>(
-        io: IOContext,
+        io: IO,
         dataType: ProtoDef.DataType,
         value: T,
         packet: P,
@@ -140,19 +132,13 @@ export class Protocol {
         const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
 
         const ctx: ImplWriteContext<typeof typeArgs> = {
-            ...io,
-            get offset() {
-                return io.offset;
-            },
-            set offset(v: number) {
-                io.offset = v;
-            },
+            io,
             args: typeArgs,
             getValue: getValueFn(packet, path),
             write: <NT>(ty: ProtoDef.DataType, v: NT, key?: string) => {
-                enterSpan(`Writing`, ty, `at offset ${io.offset}`);
+                enterSpan(`Writing`, ty, `at offset ${io.offset}`, path);
                 this.writeDataType<NT, P>(io, ty, v, packet, namespace, key ? [...path, key] : path);
-                leaveSpan(`Wrote`, ty, `now at offset ${io.offset}`);
+                leaveSpan(`Wrote`, ty, `now at offset ${io.offset}`, path);
             },
         };
 
@@ -186,17 +172,15 @@ export class Protocol {
         namespace: string,
         path: string[],
     ): number {
-        // console.log(`sizeDataType()`, { dataType, value, packet, namespace, path });
-
         const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
 
         const ctx: ImplSizeContext<typeof typeArgs> = {
             args: typeArgs,
             getValue: getValueFn(packet, path),
             size: <NT>(ty: ProtoDef.DataType, v: NT, key?: string) => {
-                enterSpan(`SizeOf ${ty}`);
+                enterSpan(`SizeOf ${ty}`, path);
                 let s = this.sizeDataType<NT, P>(ty, v, packet, namespace, key ? [...path, key] : path);
-                leaveSpan(`SizeOf ${ty} is`, s);
+                leaveSpan(`SizeOf ${ty} is`, s, path);
                 return s;
             },
         };

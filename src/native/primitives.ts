@@ -15,16 +15,16 @@ export const bool: DataTypeImplementation<boolean> = {
 export const cstring: DataTypeImplementation<string> = {
     read: (ctx) => {
         let size = 0;
-        while(ctx.view.getInt8(ctx.offset + size) !== 0x00) size++;
-        const value = new TextDecoder().decode(ctx.buffer.slice(ctx.offset, ctx.offset + size));
-        ctx.offset += size;
-        ctx.offset += 1;
+        while(new DataView(ctx.io.buffer).getInt8(ctx.io.offset + size) !== 0x00) size++;
+        const value = new TextDecoder().decode(ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + size));
+        ctx.io.offset += size;
+        ctx.io.offset += 1;
         return value;
     },
     write: (ctx, value) => {
         const buf = new TextEncoder().encode(value);
-        new Uint8Array(ctx.buffer, ctx.offset, buf.byteLength).set(buf);
-        ctx.offset += buf.byteLength;
+        new Uint8Array(ctx.io.buffer, ctx.io.offset, buf.byteLength).set(buf);
+        ctx.io.offset += buf.byteLength;
         ctx.write("i8", 0x00);
     },
     size: (ctx, value) => {

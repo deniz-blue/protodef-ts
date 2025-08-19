@@ -1,9 +1,12 @@
 import type { ProtoDef } from "../types.js";
 
-export interface IOContext {
+export type IO = {
     offset: number;
     buffer: ArrayBuffer;
-    view: DataView;
+};
+
+export interface IOContext {
+    io: IO;
 };
 
 export interface ImplContext<Args> {
