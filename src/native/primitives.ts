@@ -1,7 +1,7 @@
 import type { DataTypeImplementation } from "../proto/datatype.js";
 
-export const Void: DataTypeImplementation<undefined> = {
-    read: () => undefined,
+export const Void: DataTypeImplementation<null> = {
+    read: () => null,
     write: () => { },
     size: () => 0,
 };

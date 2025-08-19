@@ -12,11 +12,11 @@ export interface ImplContext<Args> {
 };
 
 export interface ImplReadContext<Args> extends ImplContext<Args>, IOContext {
-    read: <T>(type: ProtoDef.DataType) => T;
+    read: <T>(type: ProtoDef.DataType, key?: string) => T;
 };
 
 export interface ImplWriteContext<Args> extends ImplContext<Args>, IOContext {
-    write: <T>(type: ProtoDef.DataType, value: T) => void;
+    write: <T>(type: ProtoDef.DataType, value: T, key?: string) => void;
 };
 
 export interface ImplSizeContext<Args> extends ImplContext<Args> {

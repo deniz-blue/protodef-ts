@@ -17,6 +17,7 @@ const dataViewImpl = (
             // Weird typescript error...
             type DataViewSetMethod = (byteOffset: number, value: number | bigint, littleEndian?: boolean) => void;
             (ctx.view[setMethod] as DataViewSetMethod)(ctx.offset, value, littleEndian);
+            ctx.offset += size;
         },
 
         size: () => size,
