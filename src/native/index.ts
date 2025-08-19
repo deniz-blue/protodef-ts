@@ -25,3 +25,6 @@ export const NativeDataTypes = {
     switch: Switch,
     count,
 };
+
+export const importNativeTypes = Object.fromEntries(Object.keys(NativeDataTypes)
+    .map(k => [k, "native"])) as Record<keyof typeof NativeDataTypes, "native">;

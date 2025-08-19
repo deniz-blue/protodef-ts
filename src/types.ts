@@ -1,13 +1,9 @@
 export namespace ProtoDef {
-    export type ProtocolTypes = {
-        types?: Partial<Record<string, DataType>>;
+    export interface Protocol {
+        types?: Record<string, DataType>;
+        // Headache. -d
+        [namespace: string]: Protocol | Record<string, DataType>;
     };
-
-    export type ProtocolNamespace = {
-        [namespace: string]: Protocol;
-    };
-
-    export type Protocol = ProtocolTypes & ProtocolNamespace;
 
     export type GenericDataType<TName, TArgs = never> = TArgs extends never ? (
         TName
@@ -15,9 +11,9 @@ export namespace ProtoDef {
             [TName, TArgs]
         );
 
-    export type DataType = Native.DataType | AnyDataType;
-    export type AnyDataType = (string & {}) | [(string & {}), any];
-    export type ImplementedDataType = "native";
+    export type DataType = Native.DataType | UnknownDataType | NativeDataType;
+    export type UnknownDataType = (string & {}) | [(string & {}), any];
+    export type NativeDataType = "native";
 };
 
 export namespace ProtoDef.Native {
@@ -34,8 +30,8 @@ export namespace ProtoDef.Native {
     export type MapperArgs = { type: DataType; mappings: Record<string, any> };
 
     export type Bitflags = {
-        // TODO: fix...
         [k: string]: boolean | number | bigint | undefined;
+        // Big headache causer:
         _value?: number | bigint;
     };
 
@@ -60,6 +56,23 @@ export namespace ProtoDef.Native {
         | "zigzag32"
         | "zigzag64"
         ;
+
+    // lol -d
+    // TODO: generalize to allow for interface augmentation for global autocomplete
+    // TODO: export
+    interface IntrinsicDataTypes {
+        switch: SwitchArgs;
+        option: DataType;
+        int: IntArgs;
+        array: ArrayArgs;
+        container: ContainerArgs;
+        count: CountArgs;
+        pstring: PStringArgs;
+        buffer: BufferArgs;
+        bitfield: BitfieldArgs;
+        bitflags: BitflagsArgs;
+        mapper: MapperArgs;
+    };
 
     export type DataType =
         // Conditional

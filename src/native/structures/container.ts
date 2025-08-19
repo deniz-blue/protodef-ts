@@ -29,7 +29,7 @@ export const container: DataTypeImplementation<{ [k: string]: any }, ProtoDef.Na
     size: (ctx, value) => {
         let size = 0;
         for (let field of ctx.args) {
-            size += ctx.size(field.type, field.anon ? value : value[field.name]);
+            size += ctx.size(field.type, field.anon ? value : value[field.name], field.anon ? undefined : field.name);
         }
         return size;
     },
