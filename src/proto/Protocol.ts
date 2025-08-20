@@ -92,10 +92,10 @@ export class Protocol {
     }
 
     read = <P>(path: string, buffer: ArrayBuffer, offset?: number): P => {
-        const [namespace, _, type] = this.resolveDataType(path);
+        const [namespace, name, type] = this.resolveDataType(path);
         const io = { buffer, offset: offset ?? 0 };
-        // is packet being initialized to `null` a good idea?
-        return this.readDataType(io, type, null, namespace, []);
+        // is packet being initialized to `{}` a good idea?
+        return this.readDataType(io, type == "native" ? name : type, {}, namespace, []);
     };
 
     readDataType<Packet, Output>(
@@ -134,9 +134,9 @@ export class Protocol {
                     result = v;
                 },
                 read: <Reading>(ty: ProtoDef.DataType, key?: string | number): Reading => {
-                    enterSpan(`Reading ${dbgDataType(ty)} at offset ${io.offset}`, path);
+                    // enterSpan(`Reading ${dbgDataType(ty)} at offset ${io.offset}`, path);
                     let v = this.readDataType<Packet, Reading>(io, ty, packet, namespace, key !== undefined ? [...path, key] : path);
-                    leaveSpan(`Read`, v, `at offset ${io.offset}`, path);
+                    // leaveSpan(`Read`, v, `at offset ${io.offset}`, path);
                     return v;
                 },
             };
@@ -157,10 +157,10 @@ export class Protocol {
     }
 
     write = <P>(path: string, packet: P, buffer: ArrayBuffer, offset?: number) => {
-        const [namespace, _, type] = this.resolveDataType(path);
+        const [namespace, name, type] = this.resolveDataType(path);
         const io = { buffer, offset: offset ?? 0 };
         // is packet being initialized to `null` a good idea?
-        this.writeDataType(io, type, packet, packet, namespace, []);
+        this.writeDataType(io, type == "native" ? name : type, packet, packet, namespace, []);
     };
 
     writeDataType<T, P>(
@@ -184,9 +184,9 @@ export class Protocol {
                 args: typeArgs,
                 getValue: (p) => getValueFrom(packet, p, path),
                 write: <NT>(ty: ProtoDef.DataType, v: NT, key?: string | number) => {
-                    enterSpan(`Writing ${dbgDataType(ty)} at offset ${io.offset}`, path);
+                    // enterSpan(`Writing ${dbgDataType(ty)} at offset ${io.offset}`, path);
                     this.writeDataType<NT, P>(io, ty, v, packet, namespace, key !== undefined ? [...path, key] : path);
-                    leaveSpan(`Wrote ${dbgDataType(ty)} now at offset ${io.offset}`, path);
+                    // leaveSpan(`Wrote ${dbgDataType(ty)} now at offset ${io.offset}`, path);
                 },
             };
 
@@ -204,8 +204,8 @@ export class Protocol {
     }
 
     size = <P>(path: string, packet: P): number => {
-        const [namespace, _, type] = this.resolveDataType(path);
-        return this.sizeDataType(type, packet, packet, namespace, []);
+        const [namespace, name, type] = this.resolveDataType(path);
+        return this.sizeDataType(type == "native" ? name : type, packet, packet, namespace, []);
     };
 
     sizeDataType<T, P>(
@@ -227,10 +227,9 @@ export class Protocol {
                 args: typeArgs,
                 getValue: (p) => getValueFrom(packet, p, path),
                 size: <NT>(ty: ProtoDef.DataType, v: NT, key?: string | number) => {
-                    enterSpan(`SizeOf ${dbgDataType(ty)}`, path);
-                    logSpan(ty);
+                    // enterSpan(`SizeOf ${dbgDataType(ty)}`, path);
                     let s = this.sizeDataType<NT, P>(ty, v, packet, namespace, key !== undefined ? [...path, key] : path);
-                    leaveSpan(`SizeOf ${dbgDataType(ty)} is`, s, path);
+                    // leaveSpan(`SizeOf ${dbgDataType(ty)} is`, s, path);
                     return s;
                 },
             };

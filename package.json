@@ -7,12 +7,16 @@
   "files": [
     "/dist"
   ],
+  "scripts": {
+    "test": "vitest"
+  },
   "keywords": [],
   "author": "deniz-blue",
   "license": "MIT",
   "packageManager": "pnpm@10.5.2",
   "devDependencies": {
     "@types/node": "^24.3.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }
