@@ -8,79 +8,74 @@ export const bitfield: DataTypeImplementation<Record<string, any>, ProtoDef.Nati
     // todo review and test
 
     read: (ctx) => {
-        ctx.value = {};
+        const view = new DataView(ctx.io.buffer);
+        let bitOffset = ctx.io.offset * 8; // start in bits
+        const result: { [name: string]: number } = {};
 
-        let bitSize = 0;
+        for (const { name, size, signed } of ctx.args) {
+            let value = 0;
+            let bitsRead = 0;
 
-        let position = 0;
-        for (const field of ctx.args) {
-            bitSize += field.size;
+            while (bitsRead < size) {
+                const byteIndex = Math.floor(bitOffset / 8);
+                const bitInByte = bitOffset % 8;
+                const bitsAvailable = Math.min(8 - bitInByte, size - bitsRead);
 
-            let value = 0n;
-            let remaining = field.size;
+                const byte = view.getUint8(byteIndex);
+                const mask = ((1 << bitsAvailable) - 1) << bitInByte;
+                const chunk = (byte & mask) >>> bitInByte;
 
-            // fast-path: align to next byte
-            while (remaining >= 8 && ((position & 7) === 0)) {
-                const byteIndex = ctx.io.offset + (position >> 3);
-                value = (value << 8n) | BigInt(new DataView(ctx.io.buffer).getUint8(byteIndex));
-                position += 8;
-                remaining -= 8;
+                value |= chunk << bitsRead;
+
+                bitOffset += bitsAvailable;
+                bitsRead += bitsAvailable;
             }
 
-            // slow-path: residual bits
-            while (remaining > 0) {
-                const byteIndex = ctx.io.offset + (position >> 3);
-                const bitIndex = 7 - (position & 7);
-                const bit = (new DataView(ctx.io.buffer).getUint8(byteIndex) >> bitIndex) & 1;
-                value = (value << 1n) | BigInt(bit);
-                position++;
-                remaining--;
-            }
-
-            if (field.signed && field.size > 0) {
-                const signBit = 1n << BigInt(field.size - 1);
+            if (signed) {
+                const signBit = 1 << (size - 1);
                 if (value & signBit) {
-                    value -= 1n << BigInt(field.size);
+                    value = value - (1 << size);
                 }
             }
 
-            ctx.value[field.name] = Number(value);
+            result[name] = value;
         }
 
-        ctx.io.offset += Math.ceil(bitSize / 8);
+        ctx.value = result;
+        ctx.io.offset = Math.ceil(bitOffset / 8); // move offset to next byte boundary
     },
 
-    write: (ctx, struct) => {
-        let bitPos = 0;
-        for (const field of ctx.args) {
-            let fieldVal = BigInt(struct[field.name] ?? 0);
-            let remaining = field.size;
+    write: (ctx, value) => {
+        const view = new DataView(ctx.io.buffer);
+        let bitOffset = ctx.io.offset * 8;
 
-            // fast-path: whole-byte chunks
-            while (remaining >= 8 && ((bitPos & 7) === 0)) {
-                const byteIndex = ctx.io.offset + (bitPos >> 3);
-                const byte = Number((fieldVal >> BigInt(remaining - 8)) & 0xFFn);
-                new DataView(ctx.io.buffer).setUint8(byteIndex, byte);
-                bitPos += 8;
-                remaining -= 8;
+        for (const { name, size, signed } of ctx.args) {
+            let val = value[name];
+
+            if (signed && val < 0) {
+                val = (1 << size) + val; // two’s complement
             }
 
-            // slow-path: residual bits
-            for (let i = remaining - 1; i >= 0; i--) {
-                const bit = Number((fieldVal >> BigInt(i)) & 1n);
-                const globalBit = bitPos + (remaining - 1 - i);
-                const byteIndex = ctx.io.offset + (globalBit >> 3);
-                const bitIndex = 7 - (globalBit & 7);
+            let bitsWritten = 0;
 
-                const old = new DataView(ctx.io.buffer).getUint8(byteIndex);
-                new DataView(ctx.io.buffer).setUint8(byteIndex, (old & ~(1 << bitIndex)) | (bit << bitIndex));
+            while (bitsWritten < size) {
+                const byteIndex = Math.floor(bitOffset / 8);
+                const bitInByte = bitOffset % 8;
+                const bitsAvailable = Math.min(8 - bitInByte, size - bitsWritten);
+
+                const mask = (1 << bitsAvailable) - 1;
+                const chunk = (val >>> bitsWritten) & mask;
+
+                const existing = view.getUint8(byteIndex);
+                const cleared = existing & ~(mask << bitInByte);
+                view.setUint8(byteIndex, cleared | (chunk << bitInByte));
+
+                bitOffset += bitsAvailable;
+                bitsWritten += bitsAvailable;
             }
-
-            bitPos += field.size;
         }
 
-        // small improvement by using bitPos instead of calculating again
-        ctx.io.offset += Math.ceil(bitPos / 8);
+        ctx.io.offset = Math.ceil(bitOffset / 8);
     },
 
     size: (ctx, value) => {

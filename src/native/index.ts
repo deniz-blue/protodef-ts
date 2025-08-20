@@ -9,6 +9,7 @@ import { bitflags } from "./util/bitflags.js";
 import { mapper } from "./util/mapper.js";
 import { Switch } from "./conditional/switch.js";
 import { count } from "./structures/count.js";
+import { buffer } from "./util/buffer.js";
 
 export const NativeDataTypes = {
     ...NativeNumericDataTypeImpls,
@@ -24,6 +25,7 @@ export const NativeDataTypes = {
     mapper,
     switch: Switch,
     count,
+    buffer,
 };
 
 export const importNativeTypes = Object.fromEntries(Object.keys(NativeDataTypes)

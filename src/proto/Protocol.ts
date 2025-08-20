@@ -1,4 +1,4 @@
-import { NativeDataTypes } from "../native/index.js";
+import { importNativeTypes, NativeDataTypes } from "../native/index.js";
 import type { ProtoDef } from "../types.js";
 import { dbgDataType, enterSpan, leaveSpan, logSpan } from "../utils/span.js";
 import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IO, IOContext } from "./datatype.js";
@@ -29,7 +29,7 @@ const getValueFrom = <P, T>(
             do {
                 removed = currentPath.pop();
                 // skip arrays
-            } while(typeof removed == "number");
+            } while (typeof removed == "number");
         } else {
             currentPath.push(segment);
         };
@@ -54,9 +54,9 @@ export class Protocol {
     }: {
         natives?: Record<string, DataTypeImplementation<any>>;
         noStd?: boolean;
-        protocol: ProtoDef.Protocol;
-    }) {
-        this._processProtocol(protocol);
+        protocol?: ProtoDef.Protocol;
+    } = {}) {
+        this._processProtocol(protocol || (noStd ? {} : { types: importNativeTypes }));
 
         if (noStd !== true)
             for (let [k, v] of Object.entries(NativeDataTypes))
@@ -94,7 +94,6 @@ export class Protocol {
     read = <P>(path: string, buffer: ArrayBuffer, offset?: number): P => {
         const [namespace, name, type] = this.resolveDataType(path);
         const io = { buffer, offset: offset ?? 0 };
-        // is packet being initialized to `{}` a good idea?
         return this.readDataType(io, type == "native" ? name : type, {}, namespace, []);
     };
 

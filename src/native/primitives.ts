@@ -7,8 +7,8 @@ export const Void: DataTypeImplementation<null> = {
 };
 
 export const bool: DataTypeImplementation<boolean> = {
-    read: (ctx) => ctx.value = !!new DataView(ctx.io.buffer, ctx.io.offset++).getInt8(0),
-    write: (ctx, value) => new DataView(ctx.io.buffer, ctx.io.offset++).setInt8(0, +value),
+    read: (ctx) => ctx.value = !!new DataView(ctx.io.buffer, ctx.io.offset++, 1).getInt8(0),
+    write: (ctx, value) => new DataView(ctx.io.buffer, ctx.io.offset++, 1).setInt8(0, +value),
     size: () => 1,
 };
 

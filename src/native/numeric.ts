@@ -8,12 +8,20 @@ const dataViewImpl = (
 ): DataTypeImplementation<number | bigint> => {
     return {
         read(ctx) {
-            let n = new DataView(ctx.io.buffer)[getMethod](ctx.io.offset);
+            let n = new DataView(ctx.io.buffer)[getMethod](ctx.io.offset, littleEndian);
             ctx.io.offset += size;
             ctx.value = n;
         },
 
         write(ctx, value) {
+            // Legacy compat
+            // if(Array.isArray(value)) {
+            //     const k = getMethod.includes("U") ? "asUintN" : "asIntN";
+            //     value = BigInt[k](64, BigInt(value[0]) << 32n)| BigInt[k](32, BigInt(value[1]));
+            // };
+
+            console.log(setMethod, value, typeof value)
+
             // Weird typescript error...
             type DataViewSetMethod = (byteOffset: number, value: number | bigint, littleEndian?: boolean) => void;
             (new DataView(ctx.io.buffer)[setMethod] as DataViewSetMethod)(ctx.io.offset, value, littleEndian);
@@ -59,7 +67,7 @@ const varint: DataTypeImplementation<number> = {
     },
 };
 
-const varint64: DataTypeImplementation<bigint> = {
+const varint64: DataTypeImplementation<number | bigint> = {
     read: (ctx) => {
         let value = 0n;
         let position = 0n;
@@ -75,6 +83,7 @@ const varint64: DataTypeImplementation<bigint> = {
     },
 
     write: (ctx, value) => {
+        value = BigInt(value);
         do {
             const byte = value & 0x7Fn;
             value >>= 7n;
@@ -83,6 +92,7 @@ const varint64: DataTypeImplementation<bigint> = {
     },
 
     size: (ctx, value) => {
+        value = BigInt(value);
         let size = 0;
         do {
             value >>= 7n;
@@ -92,7 +102,7 @@ const varint64: DataTypeImplementation<bigint> = {
     },
 };
 
-const varint128: DataTypeImplementation<bigint> = {
+const varint128: DataTypeImplementation<number | bigint> = {
     read: (ctx) => {
         let value = 0n;
         let position = 0n;
@@ -126,17 +136,19 @@ const zigzag32: DataTypeImplementation<number> = {
     },
 };
 
-const zigzag64: DataTypeImplementation<bigint> = {
+const zigzag64: DataTypeImplementation<number | bigint> = {
     read: (ctx) => {
         const value = ctx.read<bigint>("varint64");
         ctx.value = (value >> 1n) ^ -(value & 1n);
     },
 
     write: (ctx, value) => {
+        value = BigInt(value);
         ctx.write("varint64", (value << 1n) ^ (value >> 63n));
     },
 
     size: (ctx, value) => {
+        value = BigInt(value);
         return ctx.size("varint64", (value << 1n) ^ (value >> 63n));
     },
 };
@@ -153,6 +165,19 @@ export const NativeNumericDataTypeImpls = {
     f16: dataViewImpl("getFloat16", "setFloat16", 2),
     f32: dataViewImpl("getFloat32", "setFloat32", 4),
     f64: dataViewImpl("getFloat64", "setFloat64", 8),
+
+    // I LOVE UNDOCUMENTED FEATURES !!!!! -d
+    li8: dataViewImpl("getInt8", "setInt8", 1, true),
+    lu8: dataViewImpl("getUint8", "setUint8", 1, true),
+    li16: dataViewImpl("getInt16", "setInt16", 2, true),
+    lu16: dataViewImpl("getUint16", "setUint16", 2, true),
+    li32: dataViewImpl("getInt32", "setInt32", 4, true),
+    lu32: dataViewImpl("getUint32", "setUint32", 4, true),
+    li64: dataViewImpl("getBigInt64", "setBigInt64", 8, true),
+    lu64: dataViewImpl("getBigUint64", "setBigUint64", 8, true),
+    lf16: dataViewImpl("getFloat16", "setFloat16", 2, true),
+    lf32: dataViewImpl("getFloat32", "setFloat32", 4, true),
+    lf64: dataViewImpl("getFloat64", "setFloat64", 8, true),
 
     varint,
     varint64,

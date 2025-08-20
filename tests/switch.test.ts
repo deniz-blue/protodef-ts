@@ -20,9 +20,9 @@ const proto = new Protocol({
                             compareTo: "hasEntries",
                             fields: {
                                 true: ["array", {
-                                    countType: "i8",
+                                    countType: "u8",
                                     type: ["container", [
-                                        { name: "text", type: "cstring" },
+                                        { name: "text", type: "string" },
                                         {
                                             name: "detailText", type: [
                                                 "switch",
@@ -54,5 +54,34 @@ test("container > switch", () => {
         detailed: false,
         entries: undefined,
     }, [1, 97, 0, 0])
+
+    testWriteRead(proto, "testContainer", {
+        documentName: "a",
+        hasEntries: true,
+        detailed: false,
+        entries: [],
+    }, [1, 97, 1, 0, 0])
+})
+
+test("container > switch > array > switch", () => {
+    testWriteRead(proto, "testContainer", {
+        documentName: "a",
+        hasEntries: true,
+        detailed: false,
+        entries: [
+            { text: "c", detailText: undefined },
+            { text: "c", detailText: undefined },
+        ],
+    }, [1, 97, 1, 0, 2, 1, 99, 1, 99])
+
+    testWriteRead(proto, "testContainer", {
+        documentName: "a",
+        hasEntries: true,
+        detailed: true,
+        entries: [
+            { text: "c", detailText: "b" },
+            { text: "c", detailText: "b" },
+        ],
+    }, [1, 97, 1, 1, 2, 1, 99, 1, 98, 1, 99, 1, 98])
 })
 

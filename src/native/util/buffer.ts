@@ -3,7 +3,8 @@ import type { ProtoDef } from "../../types.js";
 
 export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferArgs> = {
     read: (ctx) => {
-        const length = ctx.read<number>(ctx.args.countType);
+        console.log("buffer..", ctx.args)
+        const length = Number(ctx.args.count ?? ctx.read<number>(ctx.args.countType));
         ctx.value = ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + length);
         ctx.io.offset += length;
     },
