@@ -5,7 +5,7 @@ import structures from "./structures.json" with { type: "json" }
 import utils from "./utils.json" with { type: "json" }
 
 // @ts-ignore
-conditional[0]!.subtypes[1]!.values[0]!.value.opacity = null; 
+conditional[0]!.subtypes[1]!.values[0]!.value.opacity = null;
 // Change `"undefined"` to `null` (needed because of deep equal)
 
 interface JsonTestNode {
@@ -38,7 +38,7 @@ export interface TestCase {
 export const testCases: TestCase[] = [];
 
 const asBigInt = (ty: string, value: [number, number] | number) => {
-    if(!Array.isArray(value)) return BigInt(value);
+    if (!Array.isArray(value)) return BigInt(value);
     const k = ty.includes("U") ? "asUintN" : "asIntN";
     return BigInt[k](64, BigInt(value[0]) << 32n) | BigInt[k](32, BigInt(value[1]))
 };
@@ -57,6 +57,9 @@ for (let [k, tests] of Object.entries({
                 for (let testValue of subtype.values) {
                     let value = testValue.value as any;
                     let dataType = subtype.type as any;
+
+                    if (Array.isArray(dataType) && dataType[0] == "buffer")
+                        value = asArrayBuffer(value);
 
                     testCases.push({
                         label: [
@@ -82,13 +85,13 @@ for (let [k, tests] of Object.entries({
                         dataType.endsWith("64")
                         || dataType.endsWith("128")
                     ) && (
-                        !dataType.startsWith("f")
-                        && !dataType.startsWith("lf")
-                    ))
+                            !dataType.startsWith("f")
+                            && !dataType.startsWith("lf")
+                        ))
                 )
                     value = asBigInt(dataType, value as any);
 
-                if(typeof dataType == "string" && dataType == "buffer")
+                if (typeof dataType == "string" && dataType == "buffer")
                     value = asArrayBuffer(value);
 
                 testCases.push({

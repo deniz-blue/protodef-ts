@@ -15,6 +15,10 @@ export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferA
     },
 
     size: (ctx, value) => {
-        return (("countType" in ctx.args && !!ctx.args.countType) ? ctx.size(ctx.args.countType, value.byteLength) : 0) + value.byteLength;
+        if ("count" in ctx.args && typeof ctx.args.count == "number") return ctx.args.count;
+        let size = 0;
+        if ("countType" in ctx.args && !!ctx.args.countType) size += ctx.size(ctx.args.countType, value.byteLength);
+        size += value.byteLength;
+        return size;
     },
 };

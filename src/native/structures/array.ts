@@ -7,7 +7,7 @@ export const array: DataTypeImplementation<any[], ProtoDef.Native.ArrayArgs> = {
 
         const count = ("count" in ctx.args) ? (typeof ctx.args.count == "number" ? ctx.args.count : ctx.getValue<number | bigint>(ctx.args.count)) : ctx.read<number | bigint>(ctx.args.countType);
         for (let i = 0; i < count; i++) {
-            ctx.value.push(ctx.read(ctx.args.type, i));
+            ctx.value[i] = ctx.read(ctx.args.type, i);
         }
     },
 
