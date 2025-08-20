@@ -7,9 +7,9 @@ export const option: DataTypeImplementation<any, ProtoDef.DataType> = {
     read: (ctx) => {
         const some = !!ctx.read<number>("u8");
         if (some) {
-            return ctx.read(ctx.args);
+            ctx.value = ctx.read(ctx.args);
         } else {
-            return null;
+            ctx.value = null;
         }
     },
 

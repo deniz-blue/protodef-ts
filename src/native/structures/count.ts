@@ -7,7 +7,9 @@ const getCount = (x: any) => {
 };
 
 export const count: DataTypeImplementation<any, ProtoDef.Native.CountArgs> = {
-    read: (ctx) => ctx.read(ctx.args.type),
+    read: (ctx) => {
+        ctx.value = ctx.read(ctx.args.type);
+    },
 
     write: (ctx, value) => {
         const iterable = ctx.getValue<any>(ctx.args.countFor);

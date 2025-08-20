@@ -5,8 +5,8 @@ export const pstring: DataTypeImplementation<string, ProtoDef.Native.PStringArgs
     read: (ctx) => {
         const length = ctx.read<number>(ctx.args.countType);
         const buf = ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + length);
+        ctx.value = new TextDecoder(ctx.args.encoding).decode(buf);
         ctx.io.offset += length;
-        return new TextDecoder(ctx.args.encoding).decode(buf);
     },
 
     write: (ctx, value) => {

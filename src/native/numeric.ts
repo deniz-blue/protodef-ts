@@ -10,7 +10,7 @@ const dataViewImpl = (
         read(ctx) {
             let n = new DataView(ctx.io.buffer)[getMethod](ctx.io.offset);
             ctx.io.offset += size;
-            return n;
+            ctx.value = n;
         },
 
         write(ctx, value) {
@@ -36,7 +36,7 @@ const varint: DataTypeImplementation<number> = {
             if (position >= 32) throw "VarInt too big";
         }
 
-        return value;
+        ctx.value = value;
     },
 
     write: (ctx, value) => {
@@ -71,7 +71,7 @@ const varint64: DataTypeImplementation<bigint> = {
             if (position >= 63n) throw "VarInt64 too big";
         }
 
-        return value;
+        ctx.value = value;
     },
 
     write: (ctx, value) => {
@@ -104,7 +104,7 @@ const varint128: DataTypeImplementation<bigint> = {
             if (position >= 127n) throw "VarInt64 too big";
         }
 
-        return value;
+        ctx.value = value;
     },
 
     write: varint64.write,
@@ -114,11 +114,11 @@ const varint128: DataTypeImplementation<bigint> = {
 const zigzag32: DataTypeImplementation<number> = {
     read: (ctx) => {
         const value = ctx.read<number>("varint");
-        return (value >>> 1) ^ -(value & 1);
+        ctx.value = (value >>> 1) ^ -(value & 1);
     },
 
     write: (ctx, value) => {
-        return ctx.write("varint", (value << 1) ^ (value >> 31));
+        ctx.write("varint", (value << 1) ^ (value >> 31));
     },
 
     size: (ctx, value) => {
@@ -129,11 +129,11 @@ const zigzag32: DataTypeImplementation<number> = {
 const zigzag64: DataTypeImplementation<bigint> = {
     read: (ctx) => {
         const value = ctx.read<bigint>("varint64");
-        return (value >> 1n) ^ -(value & 1n);
+        ctx.value = (value >> 1n) ^ -(value & 1n);
     },
 
     write: (ctx, value) => {
-        return ctx.write("varint64", (value << 1n) ^ (value >> 63n));
+        ctx.write("varint64", (value << 1n) ^ (value >> 63n));
     },
 
     size: (ctx, value) => {

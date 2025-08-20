@@ -8,7 +8,7 @@ export const bitfield: DataTypeImplementation<Record<string, any>, ProtoDef.Nati
     // todo review and test
 
     read: (ctx) => {
-        let struct: Record<string, any> = {};
+        ctx.value = {};
 
         let bitSize = 0;
 
@@ -44,12 +44,10 @@ export const bitfield: DataTypeImplementation<Record<string, any>, ProtoDef.Nati
                 }
             }
 
-            struct[field.name] = Number(value);
+            ctx.value[field.name] = Number(value);
         }
 
         ctx.io.offset += Math.ceil(bitSize / 8);
-
-        return struct;
     },
 
     write: (ctx, struct) => {

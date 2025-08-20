@@ -8,18 +8,40 @@ const protocol = {
 
         string: ["pstring", { countType: "i8" }],
         testContainer: ["container", [
-            { name: "cute", type: "bool" },
-            { name: "num", type: "i32" },
-            { name: "username", type: "string" },
-            { name: "hasFunnies", type: "bool" },
-            { name: "funnies", type: [
+            { name: "documentName", type: "string" },
+            { name: "hasEntries", type: "bool" },
+            { name: "detailed", type: "bool" },
+            { name: "entries", type: [
                 "switch",
                 {
-                    compareTo: "hasFunnies",
+                    compareTo: "hasEntries",
                     fields: {
                         true: ["array", {
                             countType: "i8",
-                            type: "string"
+                            type: ["container", [
+                                { name: "text", type: "cstring" },
+                                { name: "detailText", type: [
+                                    "switch",
+                                    {
+                                        compareTo: "../detailed",
+                                        fields: {
+                                            true: "string",
+                                        },
+                                        default: "void",
+                                    },
+                                ] },
+                                // { name: "hasAmount", type: "bool" },
+                                // { name: "amount", type: [
+                                //     "switch",
+                                //     {
+                                //         compareTo: "hasAmount",
+                                //         fields: {
+                                //             true: "i8",
+                                //         },
+                                //         default: "void",
+                                //     }
+                                // ] }
+                            ]]
                         }]
                     },
                     default: "void",
@@ -34,14 +56,13 @@ const proto = new Protocol({
 });
 
 const value = {
-    cute: true, // 1b
-    num: 1, // i32, 4b
-    username: "mrrp", // 4+1 b
-    hasFunnies: true, // 1b
-    funnies: [ // compareTo:hasFunnies ; 1b count
-        "" // 1b count, 0b len
+    documentName: "MeowDoc",
+    hasEntries: true,
+    detailed: true,
+    entries: [
+        { text: "entry0", detailText: "details!" }
     ],
-}; // TOTAL 13 if hasFunnies, 11 otherwise
+};
 
 
 

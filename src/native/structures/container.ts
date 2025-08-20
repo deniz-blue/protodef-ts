@@ -3,26 +3,24 @@ import type { ProtoDef } from "../../types.js";
 
 export const container: DataTypeImplementation<{ [k: string]: any }, ProtoDef.Native.ContainerArgs> = {
     read: (ctx) => {
-        let value: any = {};
+        ctx.value = {};
 
         for (let field of ctx.args) {
-            let read = ctx.read(field.type);
+            let read = ctx.read<object>(field.type, field.anon ? undefined : field.name);
             if (field.anon) {
-                value = {
-                    ...value,
-                    [field.name]: read,
+                ctx.value = {
+                    ...ctx.value,
+                    ...read,
                 };
             } else {
-                value[field.name] = read;
+                ctx.value[field.name] = read;
             }
         }
-
-        return value;
     },
 
     write: (ctx, value) => {
         for (let field of ctx.args) {
-            ctx.write(field.type, field.anon ? value : value[field.name]);
+            ctx.write(field.type, field.anon ? value : value[field.name], field.anon ? undefined : field.name);
         }
     },
 

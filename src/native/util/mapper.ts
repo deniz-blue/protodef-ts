@@ -7,8 +7,7 @@ export const mapper: DataTypeImplementation<any, ProtoDef.Native.MapperArgs> = {
         let value = ctx.args.mappings[source];
 
         if (!value) throw `Value '${source}' is not mapped to anything, can't read`;
-
-        return value;
+        ctx.value = value;
     },
 
     write: (ctx, value) => {

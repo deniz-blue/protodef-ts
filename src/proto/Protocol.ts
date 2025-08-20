@@ -1,6 +1,6 @@
 import { NativeDataTypes } from "../native/index.js";
 import type { ProtoDef } from "../types.js";
-import { enterSpan, leaveSpan, logSpan } from "../utils/span.js";
+import { dbgDataType, enterSpan, leaveSpan, logSpan } from "../utils/span.js";
 import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IO, IOContext } from "./datatype.js";
 
 export interface ProtocolNamespace {
@@ -14,25 +14,33 @@ const splitNamespacePath = (path: string): [string, string] => {
     return [namespace, name];
 };
 
-const getValueFn = <P>(packet: P, dataTypePath: string[]) => {
-    return <T>(path: string): T => {
-        const pathSegments = path.split("/").filter(Boolean);
-        const currentPath = [...dataTypePath];
-        currentPath.pop();
+const getValueFrom = <P, T>(
+    packet: P,
+    path: string,
+    dataTypePath: (string | number)[]
+): T => {
+    const pathSegments = path.split("/").filter(Boolean);
+    const currentPath = [...dataTypePath];
+    currentPath.pop();
 
-        for (let segment of pathSegments) {
-            if (segment == "..") currentPath.pop();
-            else currentPath.push(segment);
-        }
+    for (let segment of pathSegments) {
+        if (segment == "..") {
+            let removed;
+            do {
+                removed = currentPath.pop();
+                // skip arrays
+            } while(typeof removed == "number");
+        } else {
+            currentPath.push(segment);
+        };
+    }
 
-        let value: any = packet;
-        for (const segment of currentPath) {
-            value = value?.[segment];
-        }
+    let value: any = packet;
+    for (const segment of currentPath) {
+        value = value?.[segment];
+    }
 
-        logSpan(`getValue(${path}) @ ${dataTypePath} -> ${value}`);
-        return value as T;
-    };
+    return value as T;
 };
 
 export class Protocol {
@@ -88,37 +96,57 @@ export class Protocol {
         dataType: ProtoDef.DataType,
         packet: Packet,
         namespace: string,
-        path: string[],
+        path: (string | number)[],
     ): Output {
         const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
-
-        const ctx: ImplReadContext<typeof typeArgs> = {
-            io,
-            args: typeArgs,
-            getValue: getValueFn(packet, path),
-            read: <Reading>(ty: ProtoDef.DataType, key?: string): Reading => {
-                enterSpan(`Reading ${ty} at offset ${io.offset}`, path);
-                let v = this.readDataType<Packet, Reading>(io, ty, packet, namespace, key ? [...path, key] : path);
-                leaveSpan(`Read`, v, `at offset ${io.offset}`, path);
-                return v;
-            },
-        };
 
         const innerType = this.namespaces.get(namespace)?.get(typeName)
             || this.namespaces.get("")?.get(typeName);
 
         if (!innerType) throw new Error(`Unknown type '${typeName}'`);
 
-        if (innerType == "native" || innerType[0] == "native")
-            return this.natives.get(typeName)!.read(ctx)!;
+        let result: any = undefined;
+        if (innerType == "native" || innerType[0] == "native") {
+            let parent: any = packet;
+            let key: string | number | undefined = path[path.length - 1];
+            for (let i = 0; i < path.length - 1; i++) {
+                const seg = path[i]!;
+                if (parent[seg] == null || typeof parent[seg] !== "object") parent[seg] = {};
+                parent = parent[seg];
+            }
 
-        return this.readDataType<Packet, Output>(
-            io,
-            innerType,
-            packet,
-            namespace,
-            path,
-        );
+            const ctx: ImplReadContext<any, typeof typeArgs> = {
+                io,
+                args: typeArgs,
+                getValue: (p) => getValueFrom(packet, p, path),
+                get value() {
+                    return result;
+                },
+                set value(v) {
+                    if (key !== undefined) parent[key] = v;
+                    result = v;
+                },
+                read: <Reading>(ty: ProtoDef.DataType, key?: string | number): Reading => {
+                    enterSpan(`Reading ${dbgDataType(ty)} at offset ${io.offset}`, path);
+                    let v = this.readDataType<Packet, Reading>(io, ty, packet, namespace, key !== undefined ? [...path, key] : path);
+                    leaveSpan(`Read`, v, `at offset ${io.offset}`, path);
+                    return v;
+                },
+            };
+
+            const v = this.natives.get(typeName)!.read(ctx)!;
+            result = ctx.value ?? v;
+        } else {
+            result = this.readDataType<Packet, Output>(
+                io,
+                innerType,
+                packet,
+                namespace,
+                path,
+            );
+        }
+
+        return result;
     }
 
     writeDataType<T, P>(
@@ -127,37 +155,38 @@ export class Protocol {
         value: T,
         packet: P,
         namespace: string,
-        path: string[],
+        path: (string | number)[],
     ) {
         const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
-
-        const ctx: ImplWriteContext<typeof typeArgs> = {
-            io,
-            args: typeArgs,
-            getValue: getValueFn(packet, path),
-            write: <NT>(ty: ProtoDef.DataType, v: NT, key?: string) => {
-                enterSpan(`Writing`, ty, `at offset ${io.offset}`, path);
-                this.writeDataType<NT, P>(io, ty, v, packet, namespace, key ? [...path, key] : path);
-                leaveSpan(`Wrote`, ty, `now at offset ${io.offset}`, path);
-            },
-        };
 
         const innerType = this.namespaces.get(namespace)?.get(typeName)
             || this.namespaces.get("")?.get(typeName);
 
         if (!innerType) throw new Error(`Unknown type '${typeName}'`);
 
-        if (innerType == "native" || innerType[0] == "native")
-            return this.natives.get(typeName)!.write(ctx, value)!;
+        if (innerType == "native" || innerType[0] == "native") {
+            const ctx: ImplWriteContext<typeof typeArgs> = {
+                io,
+                args: typeArgs,
+                getValue: (p) => getValueFrom(packet, p, path),
+                write: <NT>(ty: ProtoDef.DataType, v: NT, key?: string | number) => {
+                    enterSpan(`Writing ${dbgDataType(ty)} at offset ${io.offset}`, path);
+                    this.writeDataType<NT, P>(io, ty, v, packet, namespace, key !== undefined ? [...path, key] : path);
+                    leaveSpan(`Wrote ${dbgDataType(ty)} now at offset ${io.offset}`, path);
+                },
+            };
 
-        this.writeDataType<T, P>(
-            io,
-            innerType,
-            value,
-            packet,
-            namespace,
-            path,
-        );
+            return this.natives.get(typeName)!.write(ctx, value)!;
+        } else {
+            this.writeDataType<T, P>(
+                io,
+                innerType,
+                value,
+                packet,
+                namespace,
+                path,
+            );
+        }
     }
 
     size = <P>(path: string, packet: P): number => {
@@ -170,35 +199,37 @@ export class Protocol {
         value: T,
         packet: P,
         namespace: string,
-        path: string[],
+        path: (string | number)[],
     ): number {
         const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
-
-        const ctx: ImplSizeContext<typeof typeArgs> = {
-            args: typeArgs,
-            getValue: getValueFn(packet, path),
-            size: <NT>(ty: ProtoDef.DataType, v: NT, key?: string) => {
-                enterSpan(`SizeOf ${ty}`, path);
-                let s = this.sizeDataType<NT, P>(ty, v, packet, namespace, key ? [...path, key] : path);
-                leaveSpan(`SizeOf ${ty} is`, s, path);
-                return s;
-            },
-        };
 
         const innerType = this.namespaces.get(namespace)?.get(typeName)
             || this.namespaces.get("")?.get(typeName);
 
         if (!innerType) throw new Error(`Unknown type '${typeName}'`);
 
-        if (innerType == "native" || innerType[0] == "native")
-            return this.natives.get(typeName)!.size(ctx, value)!;
+        if (innerType == "native" || innerType[0] == "native") {
+            const ctx: ImplSizeContext<typeof typeArgs> = {
+                args: typeArgs,
+                getValue: (p) => getValueFrom(packet, p, path),
+                size: <NT>(ty: ProtoDef.DataType, v: NT, key?: string | number) => {
+                    enterSpan(`SizeOf ${dbgDataType(ty)}`, path);
+                    logSpan(ty);
+                    let s = this.sizeDataType<NT, P>(ty, v, packet, namespace, key !== undefined ? [...path, key] : path);
+                    leaveSpan(`SizeOf ${dbgDataType(ty)} is`, s, path);
+                    return s;
+                },
+            };
 
-        return this.sizeDataType<T, P>(
-            innerType,
-            value,
-            packet,
-            namespace,
-            path,
-        );
+            return this.natives.get(typeName)!.size(ctx, value)!;
+        } else {
+            return this.sizeDataType<T, P>(
+                innerType,
+                value,
+                packet,
+                namespace,
+                path,
+            );
+        }
     }
 };

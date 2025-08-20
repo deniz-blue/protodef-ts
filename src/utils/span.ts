@@ -1,5 +1,11 @@
+import type { ProtoDef } from "../types.js";
+
 let level = 0;
 const indent = 4;
+
+export const dbgDataType = (ty: ProtoDef.DataType) => {
+    return Array.isArray(ty) ? ty[0] : ty;
+};
 
 export const enterSpan = (...log: any[]) => {
     if(log.length) console.log("|".padEnd(level*indent, " "), ...log);

@@ -6,9 +6,9 @@ export const Switch: DataTypeImplementation<any, ProtoDef.Native.SwitchArgs> = {
         let discriminant = ctx.args.compareToValue ?? ctx.getValue(ctx.args.compareTo);
 
         if (ctx.args.fields[discriminant] !== undefined) {
-            return ctx.read(ctx.args.fields[discriminant]);
+            ctx.value = ctx.read(ctx.args.fields[discriminant]);
         } else if (ctx.args.default !== undefined) {
-            return ctx.read(ctx.args.default);
+            ctx.value = ctx.read(ctx.args.default);
         } else {
             throw `Value '${discriminant}' switched to nothing`;
         }

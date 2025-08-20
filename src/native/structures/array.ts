@@ -3,25 +3,29 @@ import type { ProtoDef } from "../../types.js";
 
 export const array: DataTypeImplementation<any[], ProtoDef.Native.ArrayArgs> = {
     read: (ctx) => {
-        const value: any[] = [];
+        ctx.value = [];
 
         const count = ctx.read<number | bigint>(ctx.args.countType);
         for (let i = 0; i < count; i++) {
-            value.push(ctx.read(ctx.args.type));
+            ctx.value.push(ctx.read(ctx.args.type, i));
         }
-
-        return value;
     },
 
     write: (ctx, value) => {
         ctx.write(ctx.args.countType, value.length);
-        for (let element of value) ctx.write(ctx.args.type, element);
+        for (let i = 0; i < value.length; i++) {
+            const element = value[i];
+            ctx.write(ctx.args.type, element, i);
+        }
     },
 
     size: (ctx, value) => {
         let size = 0;
         size += ctx.size(ctx.args.countType, value.length);
-        for (let element of value) size += ctx.size(ctx.args.type, element);
+        for (let i = 0; i < value.length; i++) {
+            const element = value[i];
+            size += ctx.size(ctx.args.type, element, i);
+        }
         return size;
     },
 };
