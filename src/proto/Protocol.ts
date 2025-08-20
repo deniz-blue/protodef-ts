@@ -140,8 +140,7 @@ export class Protocol {
                 },
             };
 
-            const v = this.natives.get(typeName)!.read(ctx)!;
-            result = ctx.value ?? v;
+            this.natives.get(typeName)!.read(ctx)!;
         } else {
             result = this.readDataType<Packet, Output>(
                 io,
@@ -219,7 +218,7 @@ export class Protocol {
         const innerType = this.namespaces.get(namespace)?.get(typeName)
             || this.namespaces.get("")?.get(typeName);
 
-        if (!innerType) throw new Error(`Unknown type '${typeName}'`);
+        if (!innerType) throw new Error(`Unknown type '${typeName}' at path ${path.join(".")}`);
 
         if (innerType == "native" || innerType[0] == "native") {
             const ctx: ImplSizeContext<typeof typeArgs> = {

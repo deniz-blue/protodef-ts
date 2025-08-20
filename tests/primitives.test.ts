@@ -69,51 +69,51 @@ const proto = new Protocol({
 });
 
 test("cstring", () => {
-    testWriteRead(proto, "cstring", "Meow", [77, 101, 111, 119, 0]);
+    testWriteRead(proto, "cstring", "Meow", new Uint8Array([77, 101, 111, 119, 0]).buffer);
 });
 
 test("void", () => {
-    testWriteRead(proto, "void", null, []);
+    testWriteRead(proto, "void", null, new Uint8Array([]).buffer);
 });
 
 test("bool", () => {
-    testWriteRead(proto, "bool", true, [1]);
-    testWriteRead(proto, "bool", false, [0]);
+    testWriteRead(proto, "bool", true, new Uint8Array([1]).buffer);
+    testWriteRead(proto, "bool", false, new Uint8Array([0]).buffer);
 });
 
 
 test("array<count:u8, cstring>", () => {
-    testWriteRead(proto, "u8cstringArray", [], [0]);
-    testWriteRead(proto, "u8cstringArray", ["Meow"], [1, 77, 101, 111, 119, 0]);
-    testWriteRead(proto, "u8cstringArray", ["a", "b"], [2, 97, 0, 98, 0]);
+    testWriteRead(proto, "u8cstringArray", [], new Uint8Array([0]).buffer);
+    testWriteRead(proto, "u8cstringArray", ["Meow"], new Uint8Array([1, 77, 101, 111, 119, 0]).buffer);
+    testWriteRead(proto, "u8cstringArray", ["a", "b"], new Uint8Array([2, 97, 0, 98, 0]).buffer);
 });
 
 test("varint", () => {
-    testWriteRead(proto, "varint", 0, [0x00]);
-    testWriteRead(proto, "varint", 2, [0x02]);
-    testWriteRead(proto, "varint", 127, [0x7f]);
-    testWriteRead(proto, "varint", 128, [0x80, 0x01]);
-    testWriteRead(proto, "varint", 255, [0xff, 0x01]);
-    testWriteRead(proto, "varint", 25565, [0xdd, 0xc7, 0x01]);
-    testWriteRead(proto, "varint", 2097151, [0xff, 0xff, 0x7f]);
-    testWriteRead(proto, "varint", 2097151, [0xff, 0xff, 0x7f]);
-    testWriteRead(proto, "varint", 2147483647, [0xff, 0xff, 0xff, 0xff, 0x07]);
-    testWriteRead(proto, "varint", -1, [0xff, 0xff, 0xff, 0xff, 0x0f]);
-    testWriteRead(proto, "varint", -2147483648, [0x80, 0x80, 0x80, 0x80, 0x08]);
+    testWriteRead(proto, "varint", 0, new Uint8Array([0x00]).buffer);
+    testWriteRead(proto, "varint", 2, new Uint8Array([0x02]).buffer);
+    testWriteRead(proto, "varint", 127, new Uint8Array([0x7f]).buffer);
+    testWriteRead(proto, "varint", 128, new Uint8Array([0x80, 0x01]).buffer);
+    testWriteRead(proto, "varint", 255, new Uint8Array([0xff, 0x01]).buffer);
+    testWriteRead(proto, "varint", 25565, new Uint8Array([0xdd, 0xc7, 0x01]).buffer);
+    testWriteRead(proto, "varint", 2097151, new Uint8Array([0xff, 0xff, 0x7f]).buffer);
+    testWriteRead(proto, "varint", 2097151, new Uint8Array([0xff, 0xff, 0x7f]).buffer);
+    testWriteRead(proto, "varint", 2147483647, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x07]).buffer);
+    testWriteRead(proto, "varint", -1, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x0f]).buffer);
+    testWriteRead(proto, "varint", -2147483648, new Uint8Array([0x80, 0x80, 0x80, 0x80, 0x08]).buffer);
 });
 
 test("varlong", () => {
-    testWriteRead(proto, "varint64", 9223372036854775807n, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f]);
+    testWriteRead(proto, "varint64", 9223372036854775807n, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f]).buffer);
 });
 
 test("mapper<u8>", () => {
-    testWriteRead(proto, "rgbEnum", "red", [0]);
-    testWriteRead(proto, "rgbEnum", "green", [1]);
-    testWriteRead(proto, "rgbEnum", "blue", [2]);
-    // testWriteRead(proto, "rgbEnum", "nonexistent", [0]);
+    testWriteRead(proto, "rgbEnum", "red", new Uint8Array([0]).buffer);
+    testWriteRead(proto, "rgbEnum", "green", new Uint8Array([1]).buffer);
+    testWriteRead(proto, "rgbEnum", "blue", new Uint8Array([2]).buffer);
+    // testWriteRead(proto, "rgbEnum", "nonexistent", new Uint8Array([0]).buffer);
 });
 
 test("container > bitfield (anon)", () => {
     let packet = { "metadata": 14, "blockId": 806, "y": 4, "z": 6, "x": 1 };
-    testWriteRead(proto, "bitfieldTest", packet, [0xe3, 0x26, 0x04, 0x61]);
+    testWriteRead(proto, "bitfieldTest", packet, new Uint8Array([0xe3, 0x26, 0x04, 0x61]).buffer);
 });

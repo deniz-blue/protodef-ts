@@ -5,14 +5,14 @@ export const array: DataTypeImplementation<any[], ProtoDef.Native.ArrayArgs> = {
     read: (ctx) => {
         ctx.value = [];
 
-        const count = ctx.read<number | bigint>(ctx.args.countType);
+        const count = ("count" in ctx.args) ? (typeof ctx.args.count == "number" ? ctx.args.count : ctx.getValue<number | bigint>(ctx.args.count)) : ctx.read<number | bigint>(ctx.args.countType);
         for (let i = 0; i < count; i++) {
             ctx.value.push(ctx.read(ctx.args.type, i));
         }
     },
 
     write: (ctx, value) => {
-        ctx.write(ctx.args.countType, value.length);
+        if ("countType" in ctx.args && !!ctx.args.countType) ctx.write(ctx.args.countType, value.length);
         for (let i = 0; i < value.length; i++) {
             const element = value[i];
             ctx.write(ctx.args.type, element, i);
@@ -21,7 +21,7 @@ export const array: DataTypeImplementation<any[], ProtoDef.Native.ArrayArgs> = {
 
     size: (ctx, value) => {
         let size = 0;
-        size += ctx.size(ctx.args.countType, value.length);
+        if ("countType" in ctx.args && !!ctx.args.countType) size += ctx.size(ctx.args.countType, value.length);
         for (let i = 0; i < value.length; i++) {
             const element = value[i];
             size += ctx.size(ctx.args.type, element, i);

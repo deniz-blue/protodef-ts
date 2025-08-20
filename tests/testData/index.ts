@@ -31,7 +31,7 @@ export interface TestCase {
     label: string;
     dataType: ProtoDef.DataType;
     value: any;
-    buffer: number[];
+    buffer: ArrayBuffer;
     vars?: Record<string, any>;
 };
 
@@ -42,6 +42,8 @@ const asBigInt = (ty: string, value: [number, number] | number) => {
     const k = ty.includes("U") ? "asUintN" : "asIntN";
     return BigInt[k](64, BigInt(value[0]) << 32n) | BigInt[k](32, BigInt(value[1]))
 };
+
+const asArrayBuffer = (arr: string[]) => new Uint8Array(arr.map(x => parseInt(x.slice(2), 16))).buffer;
 
 for (let [k, tests] of Object.entries({
     conditional,
@@ -65,7 +67,7 @@ for (let [k, tests] of Object.entries({
                         ].filter(Boolean).join("/"),
                         dataType,
                         value,
-                        buffer: testValue.buffer.map(x => parseInt(x.slice(2), 16)),
+                        buffer: asArrayBuffer(testValue.buffer),
                         vars: "vars" in subtype ? Object.fromEntries(subtype.vars) : {},
                     })
                 }
@@ -79,9 +81,15 @@ for (let [k, tests] of Object.entries({
                     && ((k == "numeric" || k == "utils") && (
                         dataType.endsWith("64")
                         || dataType.endsWith("128")
+                    ) && (
+                        !dataType.startsWith("f")
+                        && !dataType.startsWith("lf")
                     ))
                 )
                     value = asBigInt(dataType, value as any);
+
+                if(typeof dataType == "string" && dataType == "buffer")
+                    value = asArrayBuffer(value);
 
                 testCases.push({
                     label: [
@@ -91,7 +99,7 @@ for (let [k, tests] of Object.entries({
                     ].filter(Boolean).join("/"),
                     dataType,
                     value,
-                    buffer: testValue.buffer.map(x => parseInt(x.slice(2), 16)),
+                    buffer: asArrayBuffer(testValue.buffer),
                 })
             }
         }

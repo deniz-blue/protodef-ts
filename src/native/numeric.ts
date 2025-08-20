@@ -20,7 +20,7 @@ const dataViewImpl = (
             //     value = BigInt[k](64, BigInt(value[0]) << 32n)| BigInt[k](32, BigInt(value[1]));
             // };
 
-            console.log(setMethod, value, typeof value)
+            // console.log(setMethod, value, typeof value)
 
             // Weird typescript error...
             type DataViewSetMethod = (byteOffset: number, value: number | bigint, littleEndian?: boolean) => void;

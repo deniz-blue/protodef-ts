@@ -1,81 +1,75 @@
 import type { DataTypeImplementation } from "../../proto/datatype.js";
 import type { ProtoDef } from "../../types.js";
 
-export const bitfield: DataTypeImplementation<Record<string, any>, ProtoDef.Native.BitfieldArgs> = {
+const bitMask = (n: number) => (1 << n) - 1;
+
+export const bitfield: DataTypeImplementation<Record<string, number>, ProtoDef.Native.BitfieldArgs> = {
     // ! I used ChatGPT for read and write
     // im sorry im not smart enough for bit manipulation
     // i did go ahead and rewrite most of the functions but still...
     // todo review and test
 
     read: (ctx) => {
-        const view = new DataView(ctx.io.buffer);
-        let bitOffset = ctx.io.offset * 8; // start in bits
-        const result: { [name: string]: number } = {};
+        const beginOffset = ctx.io.offset;
+        let curVal = 0
+        let bits = 0
 
-        for (const { name, size, signed } of ctx.args) {
-            let value = 0;
-            let bitsRead = 0;
+        ctx.value = {};
 
-            while (bitsRead < size) {
-                const byteIndex = Math.floor(bitOffset / 8);
-                const bitInByte = bitOffset % 8;
-                const bitsAvailable = Math.min(8 - bitInByte, size - bitsRead);
-
-                const byte = view.getUint8(byteIndex);
-                const mask = ((1 << bitsAvailable) - 1) << bitInByte;
-                const chunk = (byte & mask) >>> bitInByte;
-
-                value |= chunk << bitsRead;
-
-                bitOffset += bitsAvailable;
-                bitsRead += bitsAvailable;
-            }
-
-            if (signed) {
-                const signBit = 1 << (size - 1);
-                if (value & signBit) {
-                    value = value - (1 << size);
+        for (let { size, signed, name } of ctx.args) {
+            let currentSize = size
+            let val = 0
+            while (currentSize > 0) {
+                if (bits === 0) {
+                    // if (ctx.buffer.length < offset + 1) { throw new PartialReadError() }
+                    curVal = new DataView(ctx.io.buffer, ctx.io.offset++, 1).getInt8(0);
+                    bits = 8
                 }
+                const bitsToRead = Math.min(currentSize, bits)
+                val = (val << bitsToRead) | (curVal & bitMask(bits)) >> (bits - bitsToRead)
+                bits -= bitsToRead
+                currentSize -= bitsToRead
             }
-
-            result[name] = value;
-        }
-
-        ctx.value = result;
-        ctx.io.offset = Math.ceil(bitOffset / 8); // move offset to next byte boundary
+            if (signed && val >= 1 << (size - 1)) { val -= 1 << size }
+            ctx.value[name] = val
+        };
     },
 
     write: (ctx, value) => {
-        const view = new DataView(ctx.io.buffer);
-        let bitOffset = ctx.io.offset * 8;
+        let toWrite = 0
+        let bits = 0
 
-        for (const { name, size, signed } of ctx.args) {
-            let val = value[name];
+        for (let { name, signed, size } of ctx.args) {
+            const val = value[name] ?? 0;
 
-            if (signed && val < 0) {
-                val = (1 << size) + val; // two’s complement
-            }
+            // if ((!signed && val < 0) || (signed && val < -(1 << (size - 1)))) {
+            //     throw new Error(value + ' < ' + signed ? (-(1 << (size - 1))) : 0)
+            // } else if ((!signed && val >= 1 << size) ||
+            //     (signed && val >= (1 << (size - 1)) - 1)) {
+            //     throw new Error(value + ' >= ' + signed ? (1 << size) : ((1 << (size - 1)) - 1))
+            // }
 
-            let bitsWritten = 0;
-
-            while (bitsWritten < size) {
-                const byteIndex = Math.floor(bitOffset / 8);
-                const bitInByte = bitOffset % 8;
-                const bitsAvailable = Math.min(8 - bitInByte, size - bitsWritten);
-
-                const mask = (1 << bitsAvailable) - 1;
-                const chunk = (val >>> bitsWritten) & mask;
-
-                const existing = view.getUint8(byteIndex);
-                const cleared = existing & ~(mask << bitInByte);
-                view.setUint8(byteIndex, cleared | (chunk << bitInByte));
-
-                bitOffset += bitsAvailable;
-                bitsWritten += bitsAvailable;
+            while (size > 0) {
+                const writeBits = Math.min(8 - bits, size)
+                toWrite = toWrite << writeBits |
+                    ((val >> (size - writeBits)) & bitMask(writeBits))
+                size -= writeBits
+                bits += writeBits
+                if (bits === 8) {
+                    new DataView(ctx.io.buffer, ctx.io.offset++, 1)
+                        .setInt8(0, toWrite);
+                    bits = 0
+                    toWrite = 0
+                }
             }
         }
 
-        ctx.io.offset = Math.ceil(bitOffset / 8);
+
+        if (bits !== 0)
+            new DataView(ctx.io.buffer, ctx.io.offset++, 1)
+                .setInt8(0,
+                    toWrite << (8 - bits)
+                );
     },
 
     size: (ctx, value) => {

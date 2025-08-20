@@ -17,15 +17,21 @@ export namespace ProtoDef {
 };
 
 export namespace ProtoDef.Native {
+    export type ICountable = {
+        countType: DataType;
+    } | {
+        count: string | number;
+    };
+
     export type UnitType = "bool" | "cstring" | "void";
 
     export type SwitchArgs = { compareTo: string; compareToValue?: any; fields: Record<string, DataType>; default?: DataType };
     export type IntArgs = { size: number };
-    export type ArrayArgs = { type: DataType; countType: DataType; count?: string };
+    export type ArrayArgs = ICountable & { type: DataType };
     export type ContainerArgs = { name: string; type: DataType; anon?: boolean }[];
     export type CountArgs = { type: DataType; countFor: string };
-    export type PStringArgs = { countType: DataType; count?: string; encoding?: string };
-    export type BufferArgs = { countType: DataType; count?: string; rest?: boolean };
+    export type PStringArgs = ICountable & { encoding?: string };
+    export type BufferArgs = ICountable & { rest?: boolean };
     export type BitfieldArgs = { name: string; size: number; signed: boolean }[];
     export type MapperArgs = { type: DataType; mappings: Record<string, any> };
 

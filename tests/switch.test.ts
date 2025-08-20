@@ -52,15 +52,15 @@ test("container > switch", () => {
         documentName: "a",
         hasEntries: false,
         detailed: false,
-        entries: undefined,
-    }, [1, 97, 0, 0])
+        entries: null,
+    }, new Uint8Array([1, 97, 0, 0]).buffer)
 
     testWriteRead(proto, "testContainer", {
         documentName: "a",
         hasEntries: true,
         detailed: false,
         entries: [],
-    }, [1, 97, 1, 0, 0])
+    }, new Uint8Array([1, 97, 1, 0, 0]).buffer)
 })
 
 test("container > switch > array > switch", () => {
@@ -69,10 +69,10 @@ test("container > switch > array > switch", () => {
         hasEntries: true,
         detailed: false,
         entries: [
-            { text: "c", detailText: undefined },
-            { text: "c", detailText: undefined },
+            { text: "c", detailText: null },
+            { text: "c", detailText: null },
         ],
-    }, [1, 97, 1, 0, 2, 1, 99, 1, 99])
+    }, new Uint8Array([1, 97, 1, 0, 2, 1, 99, 1, 99]).buffer)
 
     testWriteRead(proto, "testContainer", {
         documentName: "a",
@@ -82,6 +82,6 @@ test("container > switch > array > switch", () => {
             { text: "c", detailText: "b" },
             { text: "c", detailText: "b" },
         ],
-    }, [1, 97, 1, 1, 2, 1, 99, 1, 98, 1, 99, 1, 98])
+    }, new Uint8Array([1, 97, 1, 1, 2, 1, 99, 1, 98, 1, 99, 1, 98]).buffer)
 })
 

@@ -5,14 +5,14 @@ export const testWriteRead = <P>(
     proto: Protocol,
     path: string,
     packet: P,
-    expectedBytes: number[],
+    expectedBuffer: ArrayBuffer,
     noAssertReRead?: boolean,
 ) => {
     const size = proto.size(path, packet);
-    expect(size).toBe(expectedBytes.length);
+    expect(size).toBe(expectedBuffer.byteLength);
     const buffer = new ArrayBuffer(size);
     proto.write(path, packet, buffer);
-    expect([...new Uint8Array(buffer)]).deep.eq(expectedBytes);
+    expect(buffer).deep.eq(expectedBuffer);
     const read = proto.read(path, buffer);
     if(!noAssertReRead) expect(read).deep.eq(packet);
 };
