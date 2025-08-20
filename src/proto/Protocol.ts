@@ -91,6 +91,13 @@ export class Protocol {
         return [namespaceKey, name, dataType];
     }
 
+    read = <P>(path: string, buffer: ArrayBuffer, offset?: number): P => {
+        const [namespace, _, type] = this.resolveDataType(path);
+        const io = { buffer, offset: offset ?? 0 };
+        // is packet being initialized to `null` a good idea?
+        return this.readDataType(io, type, null, namespace, []);
+    };
+
     readDataType<Packet, Output>(
         io: IO,
         dataType: ProtoDef.DataType,
@@ -148,6 +155,13 @@ export class Protocol {
 
         return result;
     }
+
+    write = <P>(path: string, packet: P, buffer: ArrayBuffer, offset?: number) => {
+        const [namespace, _, type] = this.resolveDataType(path);
+        const io = { buffer, offset: offset ?? 0 };
+        // is packet being initialized to `null` a good idea?
+        this.writeDataType(io, type, packet, packet, namespace, []);
+    };
 
     writeDataType<T, P>(
         io: IO,
