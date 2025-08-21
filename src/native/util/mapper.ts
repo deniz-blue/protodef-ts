@@ -21,4 +21,6 @@ export const mapper: DataTypeImplementation<any, ProtoDef.Native.MapperArgs> = {
     },
 
     size: (ctx, value) => ctx.size(ctx.args.type, value),
+
+    getChildDataTypes: (args) => [args.type],
 };

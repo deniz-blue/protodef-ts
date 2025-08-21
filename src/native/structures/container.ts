@@ -31,4 +31,6 @@ export const container: DataTypeImplementation<{ [k: string]: any }, ProtoDef.Na
         }
         return size;
     },
+
+    getChildDataTypes: (args) => args.map(x => x.type),
 };

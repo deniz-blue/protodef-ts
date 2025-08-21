@@ -29,4 +29,6 @@ export const option: DataTypeImplementation<any, ProtoDef.DataType> = {
             return 1;
         }
     },
+
+    getChildDataTypes: (args) => [args],
 };

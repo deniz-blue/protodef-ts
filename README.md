@@ -1,14 +1,10 @@
 # protodef-ts
 
-A web-compatible TypeScript implementation of [ProtoDef](https://github.com/ProtoDef-io/ProtoDef)
+A web-compatible TypeScript implementation of [ProtoDef](https://github.com/ProtoDef-io/ProtoDef). Zero dependencies
 
 ## TODO
 
-- [x] `Impl*Context.getValue`
-- [ ] some `Impl*Context` for doing countables
-- [x] All native types
-- [x] Public API
-- [ ] Error handling
+- [ ] Good error handling
 - [ ] Stream handling
 - [x] Documentation [WIP]
 - [ ] zod integration

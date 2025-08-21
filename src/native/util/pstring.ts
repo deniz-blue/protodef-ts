@@ -23,4 +23,6 @@ export const pstring: DataTypeImplementation<string, ProtoDef.Native.PStringArgs
         size += buf.byteLength;
         return size;
     },
+
+    getChildDataTypes: (args) => "countType" in args ? [args.countType] : [],
 };

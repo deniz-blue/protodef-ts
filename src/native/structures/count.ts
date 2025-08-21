@@ -20,4 +20,6 @@ export const count: DataTypeImplementation<any, ProtoDef.Native.CountArgs> = {
         const iterable = ctx.getValue<any>(ctx.args.countFor);
         return ctx.size(ctx.args.type, getCount(iterable));
     },
+
+    getChildDataTypes: (args) => [args.type],
 };

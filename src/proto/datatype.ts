@@ -31,4 +31,8 @@ export interface DataTypeImplementation<T, Args = any> {
     read: (ctx: ImplReadContext<Args, T>) => void;
     write: (ctx: ImplWriteContext<Args>, value: T) => void;
     size: (ctx: ImplSizeContext<Args>, value: T) => number;
+    
+    // Experimental
+    
+    getChildDataTypes?: (args: Args) => ProtoDef.DataType[];
 };

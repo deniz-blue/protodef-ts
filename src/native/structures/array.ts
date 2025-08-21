@@ -28,4 +28,9 @@ export const array: DataTypeImplementation<any[], ProtoDef.Native.ArrayArgs> = {
         }
         return size;
     },
+
+    getChildDataTypes: (args) => [
+        ...("countType" in args ? [args.countType] : []),
+        args.type,
+    ],
 };

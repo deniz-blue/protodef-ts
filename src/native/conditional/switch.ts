@@ -27,4 +27,9 @@ export const Switch: DataTypeImplementation<any, ProtoDef.Native.SwitchArgs> = {
         if (type === undefined) throw `Value '${discriminant}' switched to nothing`;
         return ctx.size(type, value);
     },
+
+    getChildDataTypes: (args) => [
+        ...Object.values(args.fields),
+        args.default,
+    ].filter(x => !!x),
 };

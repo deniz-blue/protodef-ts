@@ -21,4 +21,6 @@ export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferA
         size += value.byteLength;
         return size;
     },
+
+    getChildDataTypes: (args) => "countType" in args ? [args.countType] : [],
 };
