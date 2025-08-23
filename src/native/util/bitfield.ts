@@ -4,11 +4,6 @@ import type { ProtoDef } from "../../types.js";
 const bitMask = (n: number) => (1 << n) - 1;
 
 export const bitfield: DataTypeImplementation<Record<string, number>, ProtoDef.Native.BitfieldArgs> = {
-    // ! I used ChatGPT for read and write
-    // im sorry im not smart enough for bit manipulation
-    // i did go ahead and rewrite most of the functions but still...
-    // todo review and test
-
     read: (ctx) => {
         const beginOffset = ctx.io.offset;
         let curVal = 0
@@ -22,7 +17,7 @@ export const bitfield: DataTypeImplementation<Record<string, number>, ProtoDef.N
             while (currentSize > 0) {
                 if (bits === 0) {
                     // if (ctx.buffer.length < offset + 1) { throw new PartialReadError() }
-                    curVal = new DataView(ctx.io.buffer, ctx.io.offset++, 1).getInt8(0);
+                    curVal = ctx.io.buffer[ctx.io.offset++] ?? 0
                     bits = 8
                 }
                 const bitsToRead = Math.min(currentSize, bits)
@@ -56,8 +51,7 @@ export const bitfield: DataTypeImplementation<Record<string, number>, ProtoDef.N
                 size -= writeBits
                 bits += writeBits
                 if (bits === 8) {
-                    new DataView(ctx.io.buffer, ctx.io.offset++, 1)
-                        .setInt8(0, toWrite);
+                    ctx.io.buffer[ctx.io.offset++] = toWrite;
                     bits = 0
                     toWrite = 0
                 }
@@ -66,10 +60,7 @@ export const bitfield: DataTypeImplementation<Record<string, number>, ProtoDef.N
 
 
         if (bits !== 0)
-            new DataView(ctx.io.buffer, ctx.io.offset++, 1)
-                .setInt8(0,
-                    toWrite << (8 - bits)
-                );
+            ctx.io.buffer[ctx.io.offset++] = toWrite << (8 - bits);
     },
 
     size: (ctx, value) => {

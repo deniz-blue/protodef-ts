@@ -5,7 +5,7 @@ const isSome = (x: any) => x !== null && x !== undefined;
 
 export const option: DataTypeImplementation<any, ProtoDef.DataType> = {
     read: (ctx) => {
-        const some = !!new DataView(ctx.io.buffer, ctx.io.offset++).getInt8(0);
+        const some = !!ctx.io.buffer[ctx.io.offset++];
         if (some) {
             ctx.value = ctx.read(ctx.args);
         } else {
@@ -15,10 +15,10 @@ export const option: DataTypeImplementation<any, ProtoDef.DataType> = {
 
     write: (ctx, value) => {
         if (isSome(value)) {
-            new DataView(ctx.io.buffer, ctx.io.offset++, 1).setInt8(0, 1);
+            ctx.io.buffer[ctx.io.offset++] = 1;
             ctx.write(ctx.args, value);
         } else {
-            new DataView(ctx.io.buffer, ctx.io.offset++, 1).setInt8(0, 0);
+            ctx.io.buffer[ctx.io.offset++] = 0;
         }
     },
 

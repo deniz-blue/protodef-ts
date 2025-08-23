@@ -1,7 +1,7 @@
 import { importNativeTypes, NativeDataTypes } from "../native/index.js";
 import type { ProtoDef } from "../types.js";
-import { dbgDataType, enterSpan, leaveSpan, logSpan } from "../utils/span.js";
-import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IO, IOContext } from "./datatype.js";
+import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IOContext } from "./datatype.js";
+import { createIO, type IO } from "./io.js";
 
 export interface ProtocolNamespace {
     types: Map<string, ProtoDef.DataType>;
@@ -93,7 +93,7 @@ export class Protocol {
 
     read = <P>(path: string, buffer: ArrayBuffer, offset?: number): P => {
         const [namespace, name, type] = this.resolveDataType(path);
-        const io = { buffer, offset: offset ?? 0 };
+        const io = createIO(buffer, offset);
         return this.readDataType(io, type == "native" ? name : type, {}, namespace, []);
     };
 
@@ -156,7 +156,7 @@ export class Protocol {
 
     write = <P>(path: string, packet: P, buffer: ArrayBuffer, offset?: number) => {
         const [namespace, name, type] = this.resolveDataType(path);
-        const io = { buffer, offset: offset ?? 0 };
+        const io = createIO(buffer, offset);
         // is packet being initialized to `null` a good idea?
         this.writeDataType(io, type == "native" ? name : type, packet, packet, namespace, []);
     };

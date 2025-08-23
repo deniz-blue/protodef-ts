@@ -1,9 +1,5 @@
 import type { ProtoDef } from "../types.js";
-
-export type IO = {
-    offset: number;
-    buffer: ArrayBuffer;
-};
+import type { IO } from "./io.js";
 
 export interface IOContext {
     io: IO;

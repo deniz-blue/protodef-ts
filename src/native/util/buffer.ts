@@ -1,7 +1,7 @@
 import type { DataTypeImplementation } from "../../proto/datatype.js";
 import type { ProtoDef } from "../../types.js";
 
-export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferArgs> = {
+export const buffer: DataTypeImplementation<Uint8Array, ProtoDef.Native.BufferArgs> = {
     read: (ctx) => {
         const length = ("count" in ctx.args) ? (typeof ctx.args.count == "number" ? ctx.args.count : ctx.getValue<number>(ctx.args.count)) : ctx.read<number>(ctx.args.countType);
         ctx.value = ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + length);
@@ -10,7 +10,8 @@ export const buffer: DataTypeImplementation<ArrayBuffer, ProtoDef.Native.BufferA
 
     write: (ctx, value) => {
         if ("countType" in ctx.args && !!ctx.args.countType) ctx.write(ctx.args.countType, value.byteLength);
-        new Uint8Array(ctx.io.buffer, ctx.io.offset, value.byteLength).set(new Uint8Array(value));
+        // new Uint8Array(ctx.io.buffer.buffer, ctx.io.offset, value.byteLength).set(new Uint8Array(value));
+        ctx.io.buffer.set(value, ctx.io.offset);
         ctx.io.offset += value.byteLength;
     },
 

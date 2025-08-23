@@ -43,7 +43,7 @@ const asBigInt = (ty: string, value: [number, number] | number) => {
     return BigInt[k](64, BigInt(value[0]) << 32n) | BigInt[k](32, BigInt(value[1]))
 };
 
-const asArrayBuffer = (arr: string[]) => new Uint8Array(arr.map(x => parseInt(x.slice(2), 16))).buffer;
+const asUint8Array = (arr: string[]) => new Uint8Array(arr.map(x => parseInt(x.slice(2), 16)));
 
 for (let [k, tests] of Object.entries({
     conditional,
@@ -59,7 +59,7 @@ for (let [k, tests] of Object.entries({
                     let dataType = subtype.type as any;
 
                     if (Array.isArray(dataType) && dataType[0] == "buffer")
-                        value = asArrayBuffer(value);
+                        value = asUint8Array(value);
 
                     testCases.push({
                         label: [
@@ -70,7 +70,7 @@ for (let [k, tests] of Object.entries({
                         ].filter(Boolean).join("/"),
                         dataType,
                         value,
-                        buffer: asArrayBuffer(testValue.buffer),
+                        buffer: asUint8Array(testValue.buffer).buffer,
                         vars: "vars" in subtype ? Object.fromEntries(subtype.vars) : {},
                     })
                 }
@@ -92,7 +92,7 @@ for (let [k, tests] of Object.entries({
                     value = asBigInt(dataType, value as any);
 
                 if (typeof dataType == "string" && dataType == "buffer")
-                    value = asArrayBuffer(value);
+                    value = asUint8Array(value);
 
                 testCases.push({
                     label: [
@@ -102,7 +102,7 @@ for (let [k, tests] of Object.entries({
                     ].filter(Boolean).join("/"),
                     dataType,
                     value,
-                    buffer: asArrayBuffer(testValue.buffer),
+                    buffer: asUint8Array(testValue.buffer).buffer,
                 })
             }
         }
