@@ -1,5 +1,6 @@
 import type { DataTypeImplementation } from "../../proto/datatype.js";
 import type { ProtoDef } from "../../types.js";
+import { iife } from "../../utils/code.js";
 
 export const mapper: DataTypeImplementation<any, ProtoDef.Native.MapperArgs> = {
     read: (ctx) => {
@@ -23,4 +24,15 @@ export const mapper: DataTypeImplementation<any, ProtoDef.Native.MapperArgs> = {
     size: (ctx, value) => ctx.size(ctx.args.type, value),
 
     getChildDataTypes: (args) => [args.type],
+
+    codegenRead(ctx) {
+        return iife([
+            `const v = ${ctx.inline(ctx.args.type)}`,
+            `return (${JSON.stringify(ctx.args.mappings)})[v] ?? ${ctx.throw("`Value '${v}' not mapped to anything`")}`
+        ]);
+    },
+
+    codegenWrite(ctx) {
+        return `${ctx.inline(ctx.args.type)}`;
+    },
 };

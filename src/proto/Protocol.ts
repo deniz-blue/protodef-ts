@@ -1,7 +1,7 @@
 import { importNativeTypes, NativeDataTypes } from "../native/index.js";
 import type { ProtoDef } from "../types.js";
 import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IOContext } from "./datatype.js";
-import { createIO, type IO } from "./io.js";
+import { createIO, type IO } from "./datatype/io.js";
 
 export interface ProtocolNamespace {
     types: Map<string, ProtoDef.DataType>;

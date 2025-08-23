@@ -1,3 +1,7 @@
+export interface IOContext {
+    io: IO;
+};
+
 export type IO = {
     offset: number;
     buffer: Uint8Array;

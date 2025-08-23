@@ -14,14 +14,6 @@ const dataViewImpl = (
         },
 
         write(ctx, value) {
-            // Legacy compat
-            // if(Array.isArray(value)) {
-            //     const k = getMethod.includes("U") ? "asUintN" : "asIntN";
-            //     value = BigInt[k](64, BigInt(value[0]) << 32n)| BigInt[k](32, BigInt(value[1]));
-            // };
-
-            // console.log(setMethod, value, typeof value)
-
             // Weird typescript error...
             type DataViewSetMethod = (byteOffset: number, value: number | bigint, littleEndian?: boolean) => void;
             (ctx.io.view[setMethod] as DataViewSetMethod)(ctx.io.offset, value, littleEndian);
@@ -29,6 +21,22 @@ const dataViewImpl = (
         },
 
         size: () => size,
+
+        codegenRead(ctx) {
+            return {
+                value: `${ctx.vars.view}.${getMethod}(${ctx.vars.offset}, ${littleEndian ? "true" : "false"})`,
+                post: `${ctx.vars.offset} += ${size}`,
+            };
+        },
+
+        codegenSize: () => size.toString(),
+
+        codegenWrite(ctx) {
+            return [
+                `${ctx.vars.view}.${setMethod}(${ctx.vars.offset}, ${ctx.vars.value}, ${littleEndian ? "true" : "false"})`,
+                `${ctx.vars.offset} += ${size}`,
+            ].join("\n");
+        },
     };
 };
 

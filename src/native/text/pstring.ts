@@ -25,4 +25,36 @@ export const pstring: DataTypeImplementation<string, ProtoDef.Native.PStringArgs
     },
 
     getChildDataTypes: (args) => "countType" in args ? [args.countType] : [],
+
+    codegenRead(ctx) {
+        const length = "count" in ctx.args ? (
+            typeof ctx.args.count == "number" ? ctx.args.count.toString() : ctx.getFieldReference(ctx.args.count)
+        ) : ctx.inline(ctx.args.countType);
+
+        return {
+            value: `${ctx.vars.textDecoder}.decode(${ctx.vars.buffer}.subarray(${ctx.vars.offset}, ${ctx.vars.offset} + ${length}))`,
+            post: `${ctx.vars.offset} += ${length}`,
+        };
+    },
+
+    codegenSize(ctx) {
+        const length = "count" in ctx.args ? (
+            typeof ctx.args.count == "number" ? ctx.args.count.toString() : ctx.getFieldReference(ctx.args.count)
+        ) : ctx.inline(ctx.args.countType);
+
+        return `(${length} + ${ctx.vars.textByteLength}(${ctx.vars.value}))`;
+    },
+
+    codegenWrite(ctx) {
+        const lengthWriteCode = "countType" in ctx.args ? ctx.inline(ctx.args.countType) : "";
+
+        return [
+            lengthWriteCode,
+            `(() => {`,
+            `\tlet buf = ${ctx.vars.textEncoder}.encode(${ctx.vars.value})`,
+            `\t${ctx.vars.buffer}.set(buf, ${ctx.vars.offset})`,
+            `\t${ctx.vars.offset} += buf.byteLength`,
+            `})()`,
+        ].filter(x=>x).join("\n");
+    },
 };
