@@ -9,7 +9,7 @@ export interface CodegenDataTypeImpl<TArgs> {
 export interface ImplCodegenContext<TArgs> {
     args: TArgs;
     vars: ICodegenVars;
-    inline: (type: ProtoDef.DataType) => string;
+    inline: (type: ProtoDef.DataType, valueReference?: string) => string;
     getFieldReference: (path: string) => string;
     throw: (s: string) => string;
 };

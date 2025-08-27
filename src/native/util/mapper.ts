@@ -33,6 +33,10 @@ export const mapper: DataTypeImplementation<any, ProtoDef.Native.MapperArgs> = {
     },
 
     codegenWrite(ctx) {
-        return `${ctx.inline(ctx.args.type)}`;
+        return `${ctx.inline(ctx.args.type, ctx.vars.value)}`;
+    },
+
+    codegenSize(ctx) {
+        return `${ctx.inline(ctx.args.type, ctx.vars.value)}`;
     },
 };
