@@ -1,5 +1,4 @@
 import type { Codec } from "../../proto/codec.js";
-import type { DataTypeImplementation } from "../../proto/datatype.js";
 
 export type MapperArgs = {
 	type: ProtoDef.DataType;
@@ -14,28 +13,7 @@ declare global {
 	}
 }
 
-export const mapper: DataTypeImplementation<any, MapperArgs> & Codec<MapperArgs> = {
-	read: (ctx) => {
-		let source = String(ctx.read(ctx.args.type));
-		let value = ctx.args.mappings[source];
-
-		if (!value) throw `Value '${source}' is not mapped to anything, can't read`;
-		ctx.value = value;
-	},
-
-	write: (ctx, value) => {
-		let mapped = Object.entries(ctx.args.mappings)
-			.find(([k, v]) => v == value)
-			?.[0];
-
-		if (!mapped) throw `Value '${value}' is not mapped to anything, can't write`;
-
-		ctx.write(ctx.args.type, mapped);
-	},
-
-	size: (ctx, value) => ctx.size(ctx.args.type, value),
-
-	getChildDataTypes: (args) => [args.type],
+export const mapper: Codec<MapperArgs> = {
 
 	encoder(writer, {
 		options,
@@ -62,5 +40,9 @@ export const mapper: DataTypeImplementation<any, MapperArgs> & Codec<MapperArgs>
 			writer.writeLine(`let ${map} = ${JSON.stringify(inverse, null, 2)}`);
 			writer.writeLine(`${getPacket()} = ${map}[${getPacket()}]`);
 		});
+	},
+
+	encodedSize(writer, { options, invokeDataType }) {
+		invokeDataType(options.type);
 	},
 };

@@ -37,6 +37,13 @@ export interface EncoderContext<TOptions> extends Context<TOptions> {
 	textEncoder: string;
 };
 
+export interface EncodedSizeContext<TOptions> extends Context<TOptions> {
+	/** The current size variable */
+	size: string;
+	/** Fast function name to calculate byte length of a string */
+	textByteLength: string;
+};
+
 export interface Decoder<TOptions> {
 	/** Buffer to object */
 	decoder(writer: CodeBlockWriter, ctx: DecoderContext<TOptions>): void;
@@ -47,5 +54,10 @@ export interface Encoder<TOptions> {
 	encoder(writer: CodeBlockWriter, vars: EncoderContext<TOptions>): void;
 };
 
-export type Codec<TOptions = void> = Decoder<TOptions> & Encoder<TOptions>;
+export interface EncodedSize<TOptions> {
+	/** Object to buffer size */
+	encodedSize(writer: CodeBlockWriter, ctx: EncodedSizeContext<TOptions>): void;
+};
+
+export type Codec<TOptions = void> = Decoder<TOptions> & Encoder<TOptions> & EncodedSize<TOptions>;
 

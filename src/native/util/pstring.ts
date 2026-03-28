@@ -1,6 +1,4 @@
 import type { Codec } from "../../proto/codec.js";
-import type { DataTypeImplementation } from "../../proto/datatype.js";
-import { textByteLength } from "../../utils/string.js";
 
 export type PStringArgs = ProtoDef.ICountable & { encoding?: string };
 
@@ -12,29 +10,11 @@ declare global {
 	}
 }
 
-export const pstring: DataTypeImplementation<string, PStringArgs> & Codec<PStringArgs> = {
-	read: (ctx) => {
-		const length = ("count" in ctx.args) ? (typeof ctx.args.count == "number" ? ctx.args.count : ctx.getValue<number>(ctx.args.count)) : ctx.read<number>(ctx.args.countType);
-		const buf = ctx.io.buffer.subarray(ctx.io.offset, ctx.io.offset + length);
-		ctx.value = ctx.io.decodeText(buf);
-		ctx.io.offset += length;
+export const pstring: Codec<PStringArgs> = {
+	encodedSize: (writer, { options, invokeDataType, textByteLength, getPacket }) => {
+		if ("countType" in options && !!options.countType) invokeDataType(options.countType);
+		writer.writeLine(`size += ${textByteLength}(${getPacket()}${options.encoding ? `, ${JSON.stringify(options.encoding)}` : ""})`);
 	},
-
-	write: (ctx, value) => {
-		const buf = ctx.io.encodeText(value);
-		if ("countType" in ctx.args && !!ctx.args.countType) ctx.write(ctx.args.countType, buf.byteLength);
-		ctx.io.buffer.set(buf, ctx.io.offset);
-		ctx.io.offset += buf.byteLength;
-	},
-
-	size: (ctx, value) => {
-		let size = 0;
-		if ("countType" in ctx.args && !!ctx.args.countType) size += ctx.size(ctx.args.countType, value.length);
-		size += textByteLength(value);
-		return size;
-	},
-
-	getChildDataTypes: (args) => "countType" in args ? [args.countType] : [],
 
 	decoder: (writer, {
 		withTempVar,

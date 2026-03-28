@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
 import { importNativeTypes } from "../src/native/index.js";
-import { Protocol } from "../src/proto/Protocol.js";
+import { ProtocolGenerator } from "../src/proto/ProtocolGenerator.js";
 import type { ProtoDef } from "../src/types.js";
 import ProtoDefNode from "protodef";
 
@@ -52,7 +52,7 @@ const exampleValue = {
 };
 
 const exampleBuffer = (() => {
-    const proto = new Protocol({
+    const proto = new ProtocolGenerator({
         protocol,
     });
     let buf = new ArrayBuffer(proto.size("packet", exampleValue));
@@ -61,7 +61,7 @@ const exampleBuffer = (() => {
 })();
 
 
-const protoTs = new Protocol({
+const protoTs = new ProtocolGenerator({
     protocol,
 });
 

@@ -1,24 +1,28 @@
 import { test } from "vitest";
 import { testCases } from "./testData/index.js";
-import { Protocol } from "../src/proto/Protocol.js";
-import { importNativeTypes } from "../src/native/index.js";
-import { testWriteRead } from "./utils.js";
+import { roundtrip, testWriteRead } from "./utils.js";
 import { fillProtocolVariables } from "../src/compat/fillProtocolVariables.js";
+import { Protocol } from "../src/proto/Protocol.js";
 
 for(let { label, dataType, value, buffer, vars } of testCases) {
-    test(label, () => {
+    test(label, ({ annotate }) => {
         const dataTypeName = "test";
 
         const proto = new Protocol({
-            protocol: fillProtocolVariables({
+            types: fillProtocolVariables({
                 types: {
-                    ...importNativeTypes,
                     [dataTypeName]: dataType,
                 },
-            }, vars),
+            }, vars).types as any,
         });
 
-        testWriteRead(proto, dataTypeName, value, buffer);
+        roundtrip({
+            proto,
+            type: dataTypeName,
+            packet: value,
+            expectBuffer: new Uint8Array(buffer),
+			annotate,
+        });
     });
 }
 

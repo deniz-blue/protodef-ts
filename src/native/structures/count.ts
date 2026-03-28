@@ -1,5 +1,4 @@
 import type { Codec } from "../../proto/codec.js";
-import type { DataTypeImplementation } from "../../proto/datatype.js";
 
 export type CountArgs = {
 	type: ProtoDef.DataType;
@@ -19,23 +18,7 @@ const getCount = (x: any) => {
     throw `Cannot count '${x}'`;
 };
 
-export const count: DataTypeImplementation<any, CountArgs> & Codec<CountArgs> = {
-    read: (ctx) => {
-        ctx.value = ctx.read(ctx.args.type);
-    },
-
-    write: (ctx, value) => {
-        const iterable = ctx.getValue<any>(ctx.args.countFor);
-        ctx.write(ctx.args.type, getCount(iterable));
-    },
-
-    size: (ctx, value) => {
-        const iterable = ctx.getValue<any>(ctx.args.countFor);
-        return ctx.size(ctx.args.type, getCount(iterable));
-    },
-
-    getChildDataTypes: (args) => [args.type],
-
+export const count: Codec<CountArgs> = {
 	decoder: (writer, { getPacket, invokeDataType, options }) => {
 		invokeDataType(options.type);
 	},
@@ -44,5 +27,9 @@ export const count: DataTypeImplementation<any, CountArgs> & Codec<CountArgs> = 
 		withNewPacket(`${resolveRelativePath(options.countFor)}.length`, () => {
 			invokeDataType(options.type);
 		});
+	},
+
+	encodedSize: (writer, { options, invokeDataType }) => {
+		invokeDataType(options.type);
 	},
 };

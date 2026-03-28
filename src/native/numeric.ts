@@ -1,5 +1,4 @@
 import type { Codec } from "../proto/codec.js";
-import type { DataTypeImplementation } from "../proto/datatype.js";
 
 declare global {
 	namespace ProtoDef {
@@ -21,35 +20,24 @@ declare global {
 const dataViewImpl = (
 	getMethod: keyof DataView & `get${string}`,
 	setMethod: keyof DataView & `set${string}`,
-	size: number,
+	byteLength: number,
 	littleEndian?: boolean,
-): DataTypeImplementation<number | bigint> & Codec => {
+): Codec => {
 	return {
-		read(ctx) {
-			let n = ctx.io.view[getMethod](ctx.io.offset, littleEndian);
-			ctx.io.offset += size;
-			ctx.value = n;
-		},
-
-		write(ctx, value) {
-			// Weird typescript error...
-			type DataViewSetMethod = (byteOffset: number, value: number | bigint, littleEndian?: boolean) => void;
-			(ctx.io.view[setMethod] as DataViewSetMethod)(ctx.io.offset, value, littleEndian);
-			ctx.io.offset += size;
-		},
-
-		size: () => size,
-
 		decoder: (writer, { getPacket, view, offset }) => {
 			writer
 				.writeLine(`${getPacket()} = ${view}.${getMethod}(${offset}, ${littleEndian})`)
-				.writeLine(`${offset} += ${size}`)
+				.writeLine(`${offset} += ${byteLength}`)
 		},
 
 		encoder: (writer, { view, offset, getPacket }) => {
 			writer
 				.writeLine(`${view}.${setMethod}(${offset}, ${getPacket()}, ${littleEndian})`)
-				.writeLine(`${offset} += ${size}`)
+				.writeLine(`${offset} += ${byteLength}`)
+		},
+
+		encodedSize: (writer, { size }) => {
+			writer.writeLine(`${size} += ${byteLength}`);
 		},
 	};
 };

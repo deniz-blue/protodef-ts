@@ -1,5 +1,4 @@
 import type { Codec } from "../../proto/codec.js";
-import type { DataTypeImplementation } from "../../proto/datatype.js";
 
 type Option = ["option", ProtoDef.DataType];
 
@@ -11,48 +10,26 @@ declare global {
 	}
 }
 
-const isSome = (x: any) => x !== null && x !== undefined;
-
-export const option: DataTypeImplementation<any, ProtoDef.DataType> & Codec<ProtoDef.DataType> = {
-	read: (ctx) => {
-		const some = !!ctx.io.buffer[ctx.io.offset++];
-		if (some) {
-			ctx.value = ctx.read(ctx.args);
-		} else {
-			ctx.value = null;
-		}
-	},
-
-	write: (ctx, value) => {
-		if (isSome(value)) {
-			ctx.io.buffer[ctx.io.offset++] = 1;
-			ctx.write(ctx.args, value);
-		} else {
-			ctx.io.buffer[ctx.io.offset++] = 0;
-		}
-	},
-
-	size: (ctx, value) => {
-		if (isSome(value)) {
-			return ctx.size(ctx.args, value) + 1;
-		} else {
-			return 1;
-		}
-	},
-
-	getChildDataTypes: (args) => [args],
-
+export const option: & Codec<ProtoDef.DataType> = {
 	decoder: (writer, { buffer, offset, getPacket, invokeDataType, options }) => {
 		writer.write(`if (${buffer}[${offset}++]) `).inlineBlock(() => {
 			invokeDataType(options);
 		}).write(` else ${getPacket()} = null`);
 	},
-	
+
 	encoder: (writer, { getPacket, buffer, offset, invokeDataType, options }) => {
 		writer.write(`if (${getPacket()} == null) `).inlineBlock(() => {
 			writer.writeLine(`${buffer}[${offset}++] = 0`);
 		}).write(" else ").inlineBlock(() => {
 			writer.writeLine(`${buffer}[${offset}++] = 1`);
+			invokeDataType(options);
+		});
+	},
+
+	encodedSize: (writer, { getPacket, size, options, invokeDataType }) => {
+		writer.writeLine(`${size}++`);
+
+		writer.write(`if (${getPacket()} != null) `).inlineBlock(() => {
 			invokeDataType(options);
 		});
 	},

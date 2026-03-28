@@ -1,4 +1,4 @@
-import type { DataTypeImplementation } from "../proto/datatype.js";
+import type { Codec } from "../proto/codec.js";
 
 declare global {
 	namespace ProtoDef {
@@ -12,131 +12,81 @@ declare global {
 	}
 }
 
-const varint: DataTypeImplementation<number> = {
-	read: (ctx) => {
-		let value = 0;
-		let position = 0;
-		while (true) {
-			let byte = ctx.io.buffer[ctx.io.offset++] ?? 0;
-			value |= (byte & 0x7F) << position;
-			if ((byte & 0x80) == 0) break;
-			position += 7;
-			if (position >= 32) throw "VarInt too big";
-		}
+const $impl = (
+	byteSize: number,
+	big: boolean,
+	zigzag: boolean,
+): Codec => {
+	const lit = (v: number | bigint | string) => big ? `${v}n` : `${v}`;
 
-		ctx.value = value;
-	},
+	const max = big ? (1n << BigInt(byteSize * 7)) - 1n : (1 << (byteSize * 7)) - 1;
+	const min = big ? -(1n << BigInt(byteSize * 7)) : -(1 << (byteSize * 7));
 
-	write: (ctx, value) => {
-		let cursor = 0;
-		while (value & ~0x7F) {
-			ctx.io.buffer[ctx.io.offset++] = (value & 0xFF) | 0x80;
-			cursor++;
-			value >>>= 7;
-		}
-		ctx.io.buffer[ctx.io.offset++] = value;
-	},
+	return {
+		decoder: (writer, { getPacket, buffer, offset, withTempVar }) => {
+			withTempVar("position", (position) => {
+				writer
+					.writeLine(`let ${position} = 0`)
+					.writeLine(`${getPacket()} = 0`)
+					.write(`while (true) `).inlineBlock(() => {
+						withTempVar("byte", (byte) => {
+							const byteAccess = `${buffer}[${offset}++] ?? 0`;
+							writer
+								.writeLine(`let ${byte} = ${big ? `BigInt(${byteAccess})` : byteAccess}`)
+								.writeLine(`${getPacket()} |= (${big ? `BigInt(${byte})` : byte} & ${lit(0x7F)}) << ${position}`)
+								.writeLine(`if ((${byte} & ${lit(0x80)}) == 0) break`)
+								.writeLine(`${position} += ${lit(7)}`)
+								.writeLine(`if (${position} >= ${lit(byteSize * 7)}) throw "VarInt too big"`);
+						});
+					});
+			});
 
-	size: (ctx, value) => {
-		let cursor = 0
-		while (value & ~0x7F) {
-			value >>>= 7
-			cursor++
-		}
-		return cursor + 1;
-	},
+			if (zigzag) {
+				writer.writeLine(`${getPacket()} = (${getPacket()} >> ${lit(1)}) ^ -((${getPacket()}) & ${lit(1)})`);
+			}
+		},
+
+		encoder: (writer, { getPacket, buffer, offset, withTempVar }) => {
+			if (zigzag) {
+				writer.writeLine(`${getPacket()} = ((${getPacket()} << ${lit(1)}) ^ (${getPacket()} >> ${lit(byteSize * 7 - 1)}))`);
+			}
+
+			writer
+				.writeLine(`${getPacket()} = ${big ? `BigInt(${getPacket()})` : getPacket()}`)
+				.writeLine(`if (${getPacket()} < ${lit(min)} || ${getPacket()} > ${lit(max)}) throw "VarInt out of bounds"`)
+				.write(`do `).inlineBlock(() => {
+					writer
+						.writeLine(`${getPacket()} >>= ${lit(7)}`)
+						.writeLine(`${buffer}[${offset}++] = Number(${getPacket()} & ${lit("0x7F")}) | (${getPacket()} ? ${lit("0x80")} : 0)`);
+				}).write(` while (${getPacket()})`);
+		},
+
+		encodedSize(writer, { size, getPacket }) {
+			writer
+				.writeLine(`${getPacket()} = ${big ? `BigInt(${getPacket()})` : getPacket()}`)
+				.write(`do `).inlineBlock(() => {
+					writer.writeLine(`${getPacket()} >>= ${lit(7)}`)
+					writer.writeLine(`${size}++`);
+				}).write(` while (${getPacket()})`)
+		},
+	};
 };
 
-const varint64: DataTypeImplementation<number | bigint> = {
-	read: (ctx) => {
-		let value = 0n;
-		let position = 0n;
-		while (true) {
-			let byte = ctx.io.buffer[ctx.io.offset++] ?? 0;
-			value |= (BigInt(byte) & 0x7Fn) << position;
-			if ((byte & 0x80) == 0) break;
-			position += 7n;
-			if (position >= 63n) throw "VarInt64 too big";
-		}
+const varint32: Codec = $impl(4, false, false);
+const varint64: Codec = $impl(8, true, false);
+const varint128: Codec = $impl(16, true, false);
+const zigzag32: Codec = $impl(4, false, true);
+const zigzag64: Codec = $impl(8, true, true);
+const zigzag128: Codec = $impl(16, true, true);
 
-		ctx.value = value;
-	},
-
-	write: (ctx, value) => {
-		value = BigInt(value);
-		do {
-			const byte = value & 0x7Fn;
-			value >>= 7n;
-			ctx.io.buffer[ctx.io.offset++] = Number(byte) | (value ? 0x80 : 0);
-		} while (value);
-	},
-
-	size: (ctx, value) => {
-		value = BigInt(value);
-		let size = 0;
-		do {
-			value >>= 7n;
-			size++;
-		} while (value !== 0n);
-		return size;
-	},
-};
-
-const varint128: DataTypeImplementation<number | bigint> = {
-	read: (ctx) => {
-		let value = 0n;
-		let position = 0n;
-		while (true) {
-			let byte = ctx.io.buffer[ctx.io.offset++] ?? 0;
-			value |= (BigInt(byte) & 0x7Fn) << position;
-			if ((byte & 0x80) == 0) break;
-			position += 7n;
-			if (position >= 127n) throw "VarInt64 too big";
-		}
-
-		ctx.value = value;
-	},
-
-	write: varint64.write,
-	size: varint64.size,
-};
-
-const zigzag32: DataTypeImplementation<number> = {
-	read: (ctx) => {
-		const value = ctx.read<number>("varint");
-		ctx.value = (value >>> 1) ^ -(value & 1);
-	},
-
-	write: (ctx, value) => {
-		ctx.write("varint", (value << 1) ^ (value >> 31));
-	},
-
-	size: (ctx, value) => {
-		return ctx.size("varint", (value << 1) ^ (value >> 31));
-	},
-};
-
-const zigzag64: DataTypeImplementation<number | bigint> = {
-	read: (ctx) => {
-		const value = ctx.read<bigint>("varint64");
-		ctx.value = (value >> 1n) ^ -(value & 1n);
-	},
-
-	write: (ctx, value) => {
-		value = BigInt(value);
-		ctx.write("varint64", (value << 1n) ^ (value >> 63n));
-	},
-
-	size: (ctx, value) => {
-		value = BigInt(value);
-		return ctx.size("varint64", (value << 1n) ^ (value >> 63n));
-	},
-};
+const varint: Codec = varint32;
 
 export {
 	varint,
+	varint32,
 	varint128,
 	varint64,
 	zigzag32,
 	zigzag64,
+	zigzag128,
 };

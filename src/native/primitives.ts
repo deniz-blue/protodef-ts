@@ -1,6 +1,4 @@
 import type { Codec } from "../proto/codec.js";
-import type { DataTypeImplementation } from "../proto/datatype.js";
-import { textByteLength } from "../utils/string.js";
 
 declare global {
 	namespace ProtoDef {
@@ -12,10 +10,8 @@ declare global {
 	}
 }
 
-export const Void: DataTypeImplementation<null> & Codec = {
-	read: (ctx) => ctx.value = null,
-	write: () => { },
-	size: () => 0,
+export const Void: Codec = {	
+	encodedSize: () => {},
 
 	decoder: (writer, { getPacket }) => {
 		writer.writeLine(`${getPacket()} = null`);
@@ -26,10 +22,8 @@ export const Void: DataTypeImplementation<null> & Codec = {
 	},
 };
 
-export const bool: DataTypeImplementation<boolean> & Codec = {
-	read: (ctx) => ctx.value = !!ctx.io.view.getInt8(ctx.io.offset++),
-	write: (ctx, value) => ctx.io.view.setInt8(ctx.io.offset++, +value),
-	size: () => 1,
+export const bool: Codec = {
+	encodedSize: (writer, { size }) => void writer.writeLine(`${size} += 1`),
 
 	decoder: (writer, { getPacket, offset, view }) => {
 		writer.writeLine(`${getPacket()} = Boolean(${view}.getInt8(${offset}++))`);
@@ -40,24 +34,7 @@ export const bool: DataTypeImplementation<boolean> & Codec = {
 	},
 };
 
-export const cstring: DataTypeImplementation<string> & Codec = {
-	read: (ctx) => {
-		let size = 0;
-		while (!ctx.io.buffer[ctx.io.offset + size]) size++;
-		ctx.value = ctx.io.decodeText(ctx.io.buffer.slice(ctx.io.offset, ctx.io.offset + size));
-		ctx.io.offset += size;
-		ctx.io.offset += 1;
-	},
-	write: (ctx, value) => {
-		const buf = ctx.io.encodeText(value);
-		ctx.io.buffer.set(buf, ctx.io.offset);
-		ctx.io.offset += buf.byteLength;
-		ctx.io.buffer[ctx.io.offset++] = 0x00;
-	},
-	size: (ctx, value) => {
-		return textByteLength(value) + 1;
-	},
-
+export const cstring: Codec = {
 	decoder: (writer, { getPacket, buffer, offset, textDecoder, withTempVar }) => {
 		withTempVar("size", (size) => {
 			writer
@@ -76,5 +53,10 @@ export const cstring: DataTypeImplementation<string> & Codec = {
 				.writeLine(`${offset} += ${encodedTextBuffer}.byteLength`)
 				.writeLine(`${buffer}[${offset}++] = 0x00`)
 		});
+	},
+
+	encodedSize(writer, { size, textByteLength, getPacket }) {
+		writer.writeLine(`${size} += ${textByteLength}(${getPacket()})`);
+		writer.writeLine(`${size}++`);
 	},
 };

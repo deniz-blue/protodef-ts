@@ -1,5 +1,4 @@
 import type { Codec } from "../../proto/codec.js";
-import type { DataTypeImplementation } from "../../proto/datatype.js";
 
 export type SwitchArgs = {
 	compareTo: string;
@@ -16,33 +15,11 @@ declare global {
 	}
 }
 
-export const Switch: DataTypeImplementation<any, SwitchArgs> & Codec<SwitchArgs> = {
-	read: (ctx) => {
-		let discriminant = ctx.args.compareToValue ?? ctx.getValue(ctx.args.compareTo);
+// All three methods are the same
 
-		if (ctx.args.fields[discriminant] !== undefined) {
-			ctx.value = ctx.read(ctx.args.fields[discriminant]);
-		} else if (ctx.args.default !== undefined) {
-			ctx.value = ctx.read(ctx.args.default);
-		} else {
-			throw `Value '${discriminant}' switched to nothing`;
-		}
-	},
+// todo: move the common code into a helper function
 
-	write: (ctx, value) => {
-		let discriminant = ctx.args.compareToValue ?? ctx.getValue(ctx.args.compareTo);
-		let type = ctx.args.fields[discriminant] ?? ctx.args.default;
-		if (type === undefined) throw `Value '${discriminant}' switched to nothing`;
-		ctx.write(type, value);
-	},
-
-	size: (ctx, value) => {
-		let discriminant = ctx.args.compareToValue ?? ctx.getValue(ctx.args.compareTo);
-		let type = ctx.args.fields[discriminant] ?? ctx.args.default;
-		if (type === undefined) throw `Value '${discriminant}' switched to nothing`;
-		return ctx.size(type, value);
-	},
-	
+export const Switch: Codec<SwitchArgs> = {
 	decoder: (writer, {
 		withTempVar,
 		options,
@@ -78,6 +55,30 @@ export const Switch: DataTypeImplementation<any, SwitchArgs> & Codec<SwitchArgs>
 		resolveRelativePath,
 		invokeDataType,
 	}) => {
+		withTempVar("discriminant", (discriminant) => {
+			if (options.compareToValue != null)
+				writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
+			else
+				writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
+
+			writer.write(`switch (${discriminant}) `).inlineBlock(() => {
+				for (let [value, type] of Object.entries(options.fields)) {
+					writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
+						invokeDataType(type);
+						writer.writeLine(`break`);
+					});
+				}
+
+				if (options.default) {
+					writer.writeLine(`default:`).indent(() => {
+						invokeDataType(options.default!);
+					});
+				}
+			});
+		});
+	},
+
+	encodedSize: (writer, { options, withTempVar, resolveRelativePath, invokeDataType }) => {
 		withTempVar("discriminant", (discriminant) => {
 			if (options.compareToValue != null)
 				writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);

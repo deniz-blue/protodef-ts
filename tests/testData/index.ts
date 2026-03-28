@@ -1,4 +1,3 @@
-import type { ProtoDef } from "../../src/types.js";
 import conditional from "./conditional.json" with { type: "json" }
 import numeric from "./numeric.json" with { type: "json" }
 import structures from "./structures.json" with { type: "json" }

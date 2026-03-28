@@ -1,5 +1,6 @@
 import { Void, bool, cstring } from "./primitives.js";
 import * as numeric from "./numeric.js";
+import * as varints from "./varint.js";
 import { pstring } from "./util/pstring.js";
 import { array } from "./structures/array.js";
 import { container } from "./structures/container.js";
@@ -13,6 +14,7 @@ import { buffer } from "./util/buffer.js";
 
 export default {
     ...numeric,
+	...varints,
     cstring,
     bool,
     void: Void,
