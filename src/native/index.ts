@@ -1,5 +1,5 @@
 import { Void, bool, cstring } from "./primitives.js";
-import { NativeNumericDataTypeImpls } from "./numeric.js";
+import * as numeric from "./numeric.js";
 import { pstring } from "./util/pstring.js";
 import { array } from "./structures/array.js";
 import { container } from "./structures/container.js";
@@ -11,8 +11,8 @@ import { Switch } from "./conditional/switch.js";
 import { count } from "./structures/count.js";
 import { buffer } from "./util/buffer.js";
 
-export const NativeDataTypes = {
-    ...NativeNumericDataTypeImpls,
+export default {
+    ...numeric,
     cstring,
     bool,
     void: Void,
@@ -27,6 +27,3 @@ export const NativeDataTypes = {
     count,
     buffer,
 };
-
-export const importNativeTypes = Object.fromEntries(Object.keys(NativeDataTypes)
-    .map(k => [k, "native"])) as Record<keyof typeof NativeDataTypes, "native">;

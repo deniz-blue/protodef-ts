@@ -19,5 +19,8 @@
     "protodef": "^1.19.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "code-block-writer": "^13.0.3"
   }
 }

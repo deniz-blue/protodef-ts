@@ -1,36 +1,80 @@
+import type { Codec } from "../../proto/codec.js";
 import type { DataTypeImplementation } from "../../proto/datatype.js";
-import type { ProtoDef } from "../../types.js";
 
-export const container: DataTypeImplementation<{ [k: string]: any }, ProtoDef.Native.ContainerArgs> = {
-    read: (ctx) => {
-        ctx.value = {};
+export type ContainerField = {
+	name: string;
+	type: ProtoDef.DataType;
+	anon?: boolean;
+};
 
-        for (let field of ctx.args) {
-            let read = ctx.read<object>(field.type, field.anon ? undefined : field.name);
-            if (field.anon) {
-                ctx.value = {
-                    ...ctx.value,
-                    ...read,
-                };
-            } else {
-                ctx.value[field.name] = read;
-            }
-        }
-    },
+export type ContainerArgs = ContainerField[];
 
-    write: (ctx, value) => {
-        for (let field of ctx.args) {
-            ctx.write(field.type, field.anon ? value : value[field.name], field.anon ? undefined : field.name);
-        }
-    },
+declare global {
+	namespace ProtoDef {
+		interface IntrinsicDataTypes {
+			container: ["container", ContainerArgs];
+		}
+	}
+}
 
-    size: (ctx, value) => {
-        let size = 0;
-        for (let field of ctx.args) {
-            size += ctx.size(field.type, field.anon ? value : value[field.name], field.anon ? undefined : field.name);
-        }
-        return size;
-    },
+export const container: DataTypeImplementation<{ [k: string]: any }, ContainerArgs> & Codec<ContainerArgs> = {
+	read: (ctx) => {
+		ctx.value = {};
 
-    getChildDataTypes: (args) => args.map(x => x.type),
+		for (let field of ctx.args) {
+			let read = ctx.read<object>(field.type, field.anon ? undefined : field.name);
+			if (field.anon) {
+				ctx.value = {
+					...ctx.value,
+					...read,
+				};
+			} else {
+				ctx.value[field.name] = read;
+			}
+		}
+	},
+
+	write: (ctx, value) => {
+		for (let field of ctx.args) {
+			ctx.write(field.type, field.anon ? value : value[field.name], field.anon ? undefined : field.name);
+		}
+	},
+
+	size: (ctx, value) => {
+		let size = 0;
+		for (let field of ctx.args) {
+			size += ctx.size(field.type, field.anon ? value : value[field.name], field.anon ? undefined : field.name);
+		}
+		return size;
+	},
+
+	getChildDataTypes: (args) => args.map(x => x.type),
+
+	decoder(writer, {
+		getPacket,
+		invokeDataType,
+		withNewPacket,
+		options,
+	}) {
+		writer.writeLine(`${getPacket()} = {}`);
+
+		for (let field of options) {
+			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
+				invokeDataType(field.type);
+			});
+		};
+	},
+
+	encoder(writer, {
+		getPacket,
+		invokeDataType,
+		withNewPacket,
+		options,
+	}) {
+		for (let field of options) {
+			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
+				invokeDataType(field.type);
+			});
+		};
+	},
 };

@@ -15,7 +15,7 @@ test("fillProtocolVariables", () => {
                 default: "void",
             }],
         },
-    } satisfies ProtoDef.Protocol;
+    } satisfies ProtoDef.NamespacedProtocol;
 
     expect(fillProtocolVariables(original, { x: "2" })).not.deep.eq(original);
 });

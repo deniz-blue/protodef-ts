@@ -40,7 +40,7 @@ const protocol = {
             },
         ]],
     },
-} satisfies ProtoDef.Protocol;
+} satisfies ProtoDef.NamespacedProtocol;
 
 const exampleValue = {
     documentName: "meow",

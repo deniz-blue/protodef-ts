@@ -1,11 +1,7 @@
 import { importNativeTypes, NativeDataTypes } from "../native/index.js";
-import type { ProtoDef } from "../types.js";
+import type { NamespacedProtocol } from "../types.js";
 import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IOContext } from "./datatype.js";
 import { createIO, type IO } from "./io.js";
-
-export interface ProtocolNamespace {
-    types: Map<string, ProtoDef.DataType>;
-};
 
 const splitNamespacePath = (path: string): [string, string] => {
     const arr = path.split(".");
@@ -54,7 +50,7 @@ export class Protocol {
     }: {
         natives?: Record<string, DataTypeImplementation<any>>;
         noStd?: boolean;
-        protocol?: ProtoDef.Protocol;
+        protocol?: NamespacedProtocol;
     } = {}) {
         this._processProtocol(protocol || (noStd ? {} : { types: importNativeTypes }));
 
@@ -66,7 +62,7 @@ export class Protocol {
             this.natives.set(k, v);
     }
 
-    private _processProtocol(protocol: ProtoDef.Protocol, nsPath: string[] = []) {
+    private _processProtocol(protocol: NamespacedProtocol, nsPath: string[] = []) {
         const nsKey = nsPath.join(".");
         if (!this.namespaces.has(nsKey)) this.namespaces.set(nsKey, new Map());
         let ns = this.namespaces.get(nsKey)!;
@@ -76,7 +72,7 @@ export class Protocol {
                 for (let name in protocol[k])
                     ns.set(name, protocol[k]![name]!);
             } else {
-                this._processProtocol(protocol[k]! as ProtoDef.Protocol, [...nsPath, k]);
+                this._processProtocol(protocol[k]! as NamespacedProtocol, [...nsPath, k]);
             }
         }
     }

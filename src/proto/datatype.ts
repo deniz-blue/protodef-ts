@@ -1,4 +1,3 @@
-import type { ProtoDef } from "../types.js";
 import type { IO } from "./io.js";
 
 export interface IOContext {

@@ -1,7 +1,7 @@
 import type { ProtoDef } from "../types.js";
 
 export const fillProtocolVariables = (
-    protocol: ProtoDef.Protocol,
+    protocol: ProtoDef.NamespacedProtocol,
     variables: Record<string, any> = {},
 ) => {
     const fix = (type?: ProtoDef.DataType): ProtoDef.DataType | undefined => {
@@ -67,7 +67,7 @@ export const fillProtocolVariables = (
         return type;
     };
 
-    const obj: ProtoDef.Protocol = {};
+    const obj: ProtoDef.NamespacedProtocol = {};
 
     for (let [k, v] of Object.entries(protocol)) {
         if (k == "types") {
@@ -77,7 +77,7 @@ export const fillProtocolVariables = (
                 obj.types[type] = fixed;
             }
         } else {
-            obj[k] = fillProtocolVariables(obj[k] as ProtoDef.Protocol);
+            obj[k] = fillProtocolVariables(obj[k] as ProtoDef.NamespacedProtocol);
         }
     }
 

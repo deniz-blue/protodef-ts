@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      code-block-writer:
+        specifier: ^13.0.3
+        version: 13.0.3
     devDependencies:
       '@types/node':
         specifier: ^24.3.0
@@ -351,6 +355,9 @@ packages:
   check-error@2.1.1:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
+
+  code-block-writer@13.0.3:
+    resolution: {integrity: sha512-Oofo0pq3IKnsFtuHqSF7TqBfr71aeyZDVJ0HpmqB7FBM2qEigL0iPONSCZSO9pE9dZTAxANe5XHG9Uy0YMv8cg==}
 
   debug@4.4.1:
     resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
@@ -837,6 +844,8 @@ snapshots:
       pathval: 2.0.1
 
   check-error@2.1.1: {}
+
+  code-block-writer@13.0.3: {}
 
   debug@4.4.1:
     dependencies:
