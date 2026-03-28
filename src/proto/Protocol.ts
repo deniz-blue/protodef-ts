@@ -1,242 +1,170 @@
-import { importNativeTypes, NativeDataTypes } from "../native/index.js";
-import type { NamespacedProtocol } from "../types.js";
-import type { DataTypeImplementation, ImplReadContext, ImplSizeContext, ImplWriteContext, IOContext } from "./datatype.js";
-import { createIO, type IO } from "./io.js";
-
-const splitNamespacePath = (path: string): [string, string] => {
-    const arr = path.split(".");
-    const name = arr.pop() || "";
-    const namespace = arr.join(".");
-    return [namespace, name];
-};
-
-const getValueFrom = <P, T>(
-    packet: P,
-    path: string,
-    dataTypePath: (string | number)[]
-): T => {
-    const pathSegments = path.split("/").filter(Boolean);
-    const currentPath = [...dataTypePath];
-    currentPath.pop();
-
-    for (let segment of pathSegments) {
-        if (segment == "..") {
-            let removed;
-            do {
-                removed = currentPath.pop();
-                // skip arrays
-            } while (typeof removed == "number");
-        } else {
-            currentPath.push(segment);
-        };
-    }
-
-    let value: any = packet;
-    for (const segment of currentPath) {
-        value = value?.[segment];
-    }
-
-    return value as T;
-};
+import type { Codec, Context, DecoderContext, EncoderContext } from "./codec.js";
+import NativeCodecs from "../native/index.js";
+import CodeBlockWriter from "code-block-writer";
 
 export class Protocol {
-    natives: Map<string, DataTypeImplementation<any>> = new Map();
-    namespaces: Map<string, Map<string, ProtoDef.DataType>> = new Map();
+	natives: Record<string, Codec<unknown>> = {};
+	types: ProtoDef.Protocol = {};
 
-    constructor({
-        natives,
-        protocol,
-        noStd,
-    }: {
-        natives?: Record<string, DataTypeImplementation<any>>;
-        noStd?: boolean;
-        protocol?: NamespacedProtocol;
-    } = {}) {
-        this._processProtocol(protocol || (noStd ? {} : { types: importNativeTypes }));
+	constructor({
+		natives,
+		types,
+		noStd,
+	}: {
+		natives?: Record<string, Codec<unknown>>;
+		noStd?: boolean;
+		types?: ProtoDef.Protocol;
+	} = {}) {
+		this.types = types || {};
 
-        if (noStd !== true)
-            for (let [k, v] of Object.entries(NativeDataTypes))
-                this.natives.set(k, v);
+		if (noStd !== true)
+			for (let [k, v] of Object.entries(NativeCodecs))
+				this.natives[k] = v;
 
-        for (let [k, v] of Object.entries(natives || {}))
-            this.natives.set(k, v);
-    }
+		for (let [k, v] of Object.entries(natives || {}))
+			this.natives[k] = v;
+	}
 
-    private _processProtocol(protocol: NamespacedProtocol, nsPath: string[] = []) {
-        const nsKey = nsPath.join(".");
-        if (!this.namespaces.has(nsKey)) this.namespaces.set(nsKey, new Map());
-        let ns = this.namespaces.get(nsKey)!;
+	createContextFactory<Ctx extends Context<unknown>>(
+		writer: CodeBlockWriter,
+		base: Omit<Ctx, keyof Context<unknown>>,
+		onCodecInvoke: (codec: Codec<unknown>, ctx: Ctx) => void,
+		root: string = "packet",
+	) {
+		// == Packeting ==
 
-        for (let k in protocol) {
-            if (k == "types") {
-                for (let name in protocol[k])
-                    ns.set(name, protocol[k]![name]!);
-            } else {
-                this._processProtocol(protocol[k]! as NamespacedProtocol, [...nsPath, k]);
-            }
-        }
-    }
+		let packet: string = root;
 
-    resolveDataType(path: string): [string, string, ProtoDef.DataType] {
-        if (!path) throw new Error(`path cannot be an empty string`);
-        const [namespaceKey, name] = splitNamespacePath(path);
-        const namespace = this.namespaces.get(namespaceKey);
-        if (!namespace) throw new Error(`Unknown namespace '${namespace}' (for path '${path}')`);
-        const dataType = namespace.get(name);
-        if (!dataType) throw new Error(`DataType '${name}' not found in namespace '${namespaceKey}'`);
-        return [namespaceKey, name, dataType];
-    }
+		const getPacket = () => packet;
 
-    read = <P>(path: string, buffer: ArrayBuffer, offset?: number): P => {
-        const [namespace, name, type] = this.resolveDataType(path);
-        const io = createIO(buffer, offset);
-        return this.readDataType(io, type == "native" ? name : type, {}, namespace, []);
-    };
+		const withNewPacket = (newPacket: string, lifetime: () => void) => {
+			const oldPacket = packet;
+			packet = newPacket;
+			lifetime();
+			packet = oldPacket;
+		};
 
-    readDataType<Packet, Output>(
-        io: IO,
-        dataType: ProtoDef.DataType,
-        packet: Packet,
-        namespace: string,
-        path: (string | number)[],
-    ): Output {
-        const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
+		const resolveRelativePath = (relativePath: string) => {
+			writer.writeLine(`// Unimplemented yet: ${relativePath}`);
+			return JSON.stringify(relativePath);
+		};
 
-        const innerType = this.namespaces.get(namespace)?.get(typeName)
-            || this.namespaces.get("")?.get(typeName);
+		// == Temp vars ==
 
-        if (!innerType) throw new Error(`Unknown type '${typeName}'`);
+		let temporaryVariables: Set<string> = new Set();
 
-        let result: any = undefined;
-        if (innerType == "native" || innerType[0] == "native") {
-            let parent: any = packet;
-            let key: string | number | undefined = path[path.length - 1];
-            for (let i = 0; i < path.length - 1; i++) {
-                const seg = path[i]!;
-                if (parent[seg] == null || typeof parent[seg] !== "object") parent[seg] = {};
-                parent = parent[seg];
-            }
+		const withTempVar = (hint: string, lifetime: (variable: string) => void) => {
+			let variable = hint;
+			let i = 0;
+			while (temporaryVariables.has(variable)) variable = `${hint}${i++}`;
+			temporaryVariables.add(variable);
+			lifetime(variable);
+			temporaryVariables.delete(variable);
+		};
 
-            const ctx: ImplReadContext<any, typeof typeArgs> = {
-                io,
-                args: typeArgs,
-                getValue: (p) => getValueFrom(packet, p, path),
-                get value() {
-                    return result;
-                },
-                set value(v) {
-                    if (key !== undefined) parent[key] = v;
-                    result = v;
-                },
-                read: <Reading>(ty: ProtoDef.DataType, key?: string | number): Reading => {
-                    // enterSpan(`Reading ${dbgDataType(ty)} at offset ${io.offset}`, path);
-                    let v = this.readDataType<Packet, Reading>(io, ty, packet, namespace, key !== undefined ? [...path, key] : path);
-                    // leaveSpan(`Read`, v, `at offset ${io.offset}`, path);
-                    return v;
-                },
-            };
+		// == Context ==
 
-            this.natives.get(typeName)!.read(ctx)!;
-        } else {
-            result = this.readDataType<Packet, Output>(
-                io,
-                innerType,
-                packet,
-                namespace,
-                path,
-            );
-        }
+		const create = (options: unknown) => {
+			const invokeDataType = (type: ProtoDef.DataType) => {
+				const [id, options] = typeof type === "string" ? [type, null] : type;
+				const newCtx = create(options);
+				if (id in this.natives)
+					onCodecInvoke(this.natives[id]!, newCtx);
+				else if (id in this.types)
+					invokeDataType(this.types[id]!);
+			};
 
-        return result;
-    }
+			const ctx = {
+				...base,
+				options,
+				invokeDataType,
 
-    write = <P>(path: string, packet: P, buffer: ArrayBuffer, offset?: number) => {
-        const [namespace, name, type] = this.resolveDataType(path);
-        const io = createIO(buffer, offset);
-        // is packet being initialized to `null` a good idea?
-        this.writeDataType(io, type == "native" ? name : type, packet, packet, namespace, []);
-    };
+				getPacket,
+				resolveRelativePath,
+				withNewPacket,
+				withTempVar,
+			} as Context<unknown>;
 
-    writeDataType<T, P>(
-        io: IO,
-        dataType: ProtoDef.DataType,
-        value: T,
-        packet: P,
-        namespace: string,
-        path: (string | number)[],
-    ) {
-        const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
+			return ctx as any as Ctx;
+		};
 
-        const innerType = this.namespaces.get(namespace)?.get(typeName)
-            || this.namespaces.get("")?.get(typeName);
+		return create;
+	}
 
-        if (!innerType) throw new Error(`Unknown type '${typeName}'`);
+	generateDecoderCode(type: ProtoDef.DataType) {
+		const writer = new CodeBlockWriter();
 
-        if (innerType == "native" || innerType[0] == "native") {
-            const ctx: ImplWriteContext<typeof typeArgs> = {
-                io,
-                args: typeArgs,
-                getValue: (p) => getValueFrom(packet, p, path),
-                write: <NT>(ty: ProtoDef.DataType, v: NT, key?: string | number) => {
-                    // enterSpan(`Writing ${dbgDataType(ty)} at offset ${io.offset}`, path);
-                    this.writeDataType<NT, P>(io, ty, v, packet, namespace, key !== undefined ? [...path, key] : path);
-                    // leaveSpan(`Wrote ${dbgDataType(ty)} now at offset ${io.offset}`, path);
-                },
-            };
+		const root: string = "packet";
+		let buffer: string = "buffer";
+		let offset: string = "offset";
+		let view: string = "view";
+		let textDecoder: string = "textDecoder";
 
-            return this.natives.get(typeName)!.write(ctx, value)!;
-        } else {
-            this.writeDataType<T, P>(
-                io,
-                innerType,
-                value,
-                packet,
-                namespace,
-                path,
-            );
-        }
-    }
+		const vars = {
+			buffer,
+			offset,
+			textDecoder,
+			view,
+		};
 
-    size = <P>(path: string, packet: P): number => {
-        const [namespace, name, type] = this.resolveDataType(path);
-        return this.sizeDataType(type == "native" ? name : type, packet, packet, namespace, []);
-    };
+		const factory = this.createContextFactory<DecoderContext<unknown>>(
+			writer,
+			vars,
+			(codec, ctx) => codec.decoder(writer, ctx),
+			root
+		);
 
-    sizeDataType<T, P>(
-        dataType: ProtoDef.DataType,
-        value: T,
-        packet: P,
-        namespace: string,
-        path: (string | number)[],
-    ): number {
-        const [typeName, typeArgs] = Array.isArray(dataType) ? dataType : [dataType];
+		const ctx = factory(null);
 
-        const innerType = this.namespaces.get(namespace)?.get(typeName)
-            || this.namespaces.get("")?.get(typeName);
+		writer.write(`((${buffer}) => `).inlineBlock(() => {
+			writer
+				.writeLine(`let ${root} = {}`)
+				.writeLine(`let ${offset} = 0`)
+				.writeLine(`let ${view} = new DataView(${buffer})`)
+				.writeLine(`let ${textDecoder} = new TextDecoder()`)
+				.blankLine()
 
-        if (!innerType) throw new Error(`Unknown type '${typeName}' at path ${path.join(".")}`);
+			ctx.invokeDataType(type);
+		}).write(`)`);
 
-        if (innerType == "native" || innerType[0] == "native") {
-            const ctx: ImplSizeContext<typeof typeArgs> = {
-                args: typeArgs,
-                getValue: (p) => getValueFrom(packet, p, path),
-                size: <NT>(ty: ProtoDef.DataType, v: NT, key?: string | number) => {
-                    // enterSpan(`SizeOf ${dbgDataType(ty)}`, path);
-                    let s = this.sizeDataType<NT, P>(ty, v, packet, namespace, key !== undefined ? [...path, key] : path);
-                    // leaveSpan(`SizeOf ${dbgDataType(ty)} is`, s, path);
-                    return s;
-                },
-            };
+		return writer.toString();
+	}
 
-            return this.natives.get(typeName)!.size(ctx, value)!;
-        } else {
-            return this.sizeDataType<T, P>(
-                innerType,
-                value,
-                packet,
-                namespace,
-                path,
-            );
-        }
-    }
+	generateEncoderCode(type: ProtoDef.DataType) {
+		const writer = new CodeBlockWriter();
+
+		const root: string = "packet";
+		let buffer: string = "buffer";
+		let offset: string = "offset";
+		let view: string = "view";
+		let textEncoder: string = "textEncoder";
+
+		const vars = {
+			buffer,
+			offset,
+			textEncoder,
+			view,
+		};
+
+		const factory = this.createContextFactory<EncoderContext<unknown>>(
+			writer,
+			vars,
+			(codec, ctx) => codec.encoder(writer, ctx),
+			root
+		);
+
+		const ctx = factory(null);
+
+		writer.write(`((${root}, ${buffer}) => `).inlineBlock(() => {
+			writer
+				.writeLine(`let ${offset} = 0`)
+				.writeLine(`let ${view} = new DataView(${buffer})`)
+				.writeLine(`let ${textEncoder} = new TextEncoder()`)
+				.blankLine()
+
+			ctx.invokeDataType(type);
+		}).write(`)`);
+
+		return writer.toString();
+	}
 };

@@ -15,24 +15,36 @@ export interface Context<TOptions> {
 	invokeDataType(type: ProtoDef.DataType): void;
 };
 
+export interface DecoderContext<TOptions> extends Context<TOptions> {
+	/** The current offset variable */
+	offset: string;
+	/** The current buffer variable */
+	buffer: string;
+	/** The current DataView variable */
+	view: string;
+	/** The current TextDecoder variable */
+	textDecoder: string;
+};
+
+export interface EncoderContext<TOptions> extends Context<TOptions> {
+	/** The current offset variable */
+	offset: string;
+	/** The current buffer variable */
+	buffer: string;
+	/** The current DataView variable */
+	view: string;
+	/** The current TextEncoder variable */
+	textEncoder: string;
+};
+
 export interface Decoder<TOptions> {
 	/** Buffer to object */
-	decoder(writer: CodeBlockWriter, ctx: Context<TOptions> & {
-		offset: string;
-		buffer: string;
-		view: string;
-		textDecoder: string;
-	}): void;
+	decoder(writer: CodeBlockWriter, ctx: DecoderContext<TOptions>): void;
 };
 
 export interface Encoder<TOptions> {
 	/** Object to buffer */
-	encoder(writer: CodeBlockWriter, vars: Context<TOptions> & {
-		offset: string;
-		buffer: string;
-		view: string;
-		textEncoder: string;
-	}): void;
+	encoder(writer: CodeBlockWriter, vars: EncoderContext<TOptions>): void;
 };
 
 export type Codec<TOptions = void> = Decoder<TOptions> & Encoder<TOptions>;

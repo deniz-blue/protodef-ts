@@ -68,7 +68,7 @@ export const array: DataTypeImplementation<any[], ArrayArgs> & Codec<ArrayArgs> 
 			writer.writeLine(`${arr} = []`);
 
 			withTempVar("i", (i) => {
-				writer.write(`for (let ${i} = 0; ${i} < ${count}; ${i}++) `).block(() => {
+				writer.write(`for (let ${i} = 0; ${i} < ${count}; ${i}++) `).inlineBlock(() => {
 					withNewPacket(`${arr}[${i}]`, () => {
 						invokeDataType(options.type);
 					});
@@ -91,7 +91,7 @@ export const array: DataTypeImplementation<any[], ArrayArgs> & Codec<ArrayArgs> 
 		}
 
 		withTempVar("i", (i) => {
-			writer.write(`for (let ${i} = 0; ${i} < ${arr}.length; ${i}++) `).block(() => {
+			writer.write(`for (let ${i} = 0; ${i} < ${arr}.length; ${i}++) `).inlineBlock(() => {
 				withNewPacket(`${arr}[${i}]`, () => {
 					invokeDataType(options.type);
 				});

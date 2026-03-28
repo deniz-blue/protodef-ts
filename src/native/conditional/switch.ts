@@ -55,7 +55,7 @@ export const Switch: DataTypeImplementation<any, SwitchArgs> & Codec<SwitchArgs>
 			else
 				writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
 
-			writer.write(`switch (${discriminant}) `).block(() => {
+			writer.write(`switch (${discriminant}) `).inlineBlock(() => {
 				for (let [value, type] of Object.entries(options.fields)) {
 					writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
 						invokeDataType(type);
@@ -84,7 +84,7 @@ export const Switch: DataTypeImplementation<any, SwitchArgs> & Codec<SwitchArgs>
 			else
 				writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
 
-			writer.write(`switch (${discriminant}) `).block(() => {
+			writer.write(`switch (${discriminant}) `).inlineBlock(() => {
 				for (let [value, type] of Object.entries(options.fields)) {
 					writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
 						invokeDataType(type);

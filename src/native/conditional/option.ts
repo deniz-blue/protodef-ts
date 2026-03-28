@@ -43,15 +43,15 @@ export const option: DataTypeImplementation<any, ProtoDef.DataType> & Codec<Prot
 	getChildDataTypes: (args) => [args],
 
 	decoder: (writer, { buffer, offset, getPacket, invokeDataType, options }) => {
-		writer.write(`if (${buffer}[${offset}++]) `).block(() => {
+		writer.write(`if (${buffer}[${offset}++]) `).inlineBlock(() => {
 			invokeDataType(options);
-		}).writeLine(`else ${getPacket()} = null`);
+		}).write(` else ${getPacket()} = null`);
 	},
 	
 	encoder: (writer, { getPacket, buffer, offset, invokeDataType, options }) => {
-		writer.write(`if (${getPacket()} == null)`).block(() => {
+		writer.write(`if (${getPacket()} == null) `).inlineBlock(() => {
 			writer.writeLine(`${buffer}[${offset}++] = 0`);
-		}).write(" else ").block(() => {
+		}).write(" else ").inlineBlock(() => {
 			writer.writeLine(`${buffer}[${offset}++] = 1`);
 			invokeDataType(options);
 		});
