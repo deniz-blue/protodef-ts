@@ -71,3 +71,39 @@
     10.10x faster than node-protodef
     39.32x faster than protodef-ts
 ```
+
+## codec rewrite
+
+```
+✓ tests/benchmark.bench.ts > size 3338ms
+     name                                hz     min     max    mean     p75     p99    p995    p999     rme  samples
+   · protodef-ts               2,340,204.10  0.0004  0.1891  0.0004  0.0004  0.0008  0.0009  0.0018  ±0.18%  1170103
+   · node-protodef               164,894.88  0.0055  0.2990  0.0061  0.0062  0.0097  0.0112  0.0148  ±0.24%    82448
+   · node-protodef (compiled)  2,364,114.03  0.0002  1.0754  0.0004  0.0004  0.0011  0.0013  0.0040  ±0.58%  1182058
+
+ ✓ tests/benchmark.bench.ts > size + write 2180ms
+     name                              hz     min     max    mean     p75     p99    p995    p999     rme  samples
+   · protodef-ts               388,770.29  0.0019  0.8373  0.0026  0.0023  0.0092  0.0110  0.0139  ±0.95%   194388
+   · node-protodef              65,553.96  0.0131  0.5216  0.0153  0.0146  0.0304  0.0327  0.0444  ±0.47%    32778
+   · node-protodef (compiled)  792,205.69  0.0011  0.4413  0.0013  0.0012  0.0024  0.0027  0.0060  ±0.32%   396103
+
+ ✓ tests/benchmark.bench.ts > read 2560ms
+     name                                hz     min     max    mean     p75     p99    p995    p999     rme  samples
+   · protodef-ts                 935,392.98  0.0008  0.3904  0.0011  0.0010  0.0021  0.0022  0.0047  ±0.29%   467697
+   · node-protodef               100,857.46  0.0083  0.5014  0.0099  0.0094  0.0209  0.0216  0.0281  ±0.44%    50430
+   · node-protodef (compiled)  1,435,550.26  0.0006  0.3979  0.0007  0.0007  0.0014  0.0015  0.0026  ±0.38%   717776
+
+ BENCH  Summary
+
+  node-protodef (compiled) - tests/benchmark.bench.ts > size
+    1.01x faster than protodef-ts
+    14.34x faster than node-protodef
+
+  node-protodef (compiled) - tests/benchmark.bench.ts > size + write
+    2.04x faster than protodef-ts
+    12.08x faster than node-protodef
+
+  node-protodef (compiled) - tests/benchmark.bench.ts > read
+    1.53x faster than protodef-ts
+    14.23x faster than node-protodef
+```
