@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { Protocol } from "../src/proto/Protocol.js";
+import { Protocol } from "../src/protocol/Protocol.js";
 
 export const roundtrip = <Packet>({
 	expectBuffer,

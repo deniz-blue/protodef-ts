@@ -20,9 +20,15 @@ const protocol = new Protocol({
 	},
 });
 
-const size = protocol.size("myPacket", { field1: 123, field2: "hello" }); // 6
-const buffer = protocol.encode("myPacket", { field1: 123, field2: "hello" }); // Uint8Array [ 123, 104, 101, 108, 108, 111 ]
-const data = protocol.decode("myPacket", buffer); // { field1: 123, field2: "hello" }
+const size = protocol.size("myPacket", { field1: 123, field2: "hello" });
+size // 7
+
+const buffer = new Uint8Array(size);
+protocol.write("myPacket", { field1: 123, field2: "hello" }, buffer);
+buffer // Uint8Array [ 123, 104, 101, 108, 108, 111, 0 ]
+
+const data = protocol.read("myPacket", buffer);
+data // { field1: 123, field2: "hello" }
 
 // Inspect the generated code:
 console.log(protocol.generateDecoderCode("myPacket"));

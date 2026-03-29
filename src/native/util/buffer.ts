@@ -1,4 +1,4 @@
-import type { Codec } from "../../proto/codec.js";
+import type { Codec } from "../../codec.js";
 
 export type BufferArgs = ProtoDef.ICountable & { rest?: boolean };
 

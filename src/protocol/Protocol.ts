@@ -28,7 +28,7 @@ export class Protocol extends ProtocolGenerator {
 	}
 
 	write<Packet>(type: string, packet: Packet, buffer: Uint8Array): void {
-		return this.compile(type).encode(packet, buffer);
+		this.compile(type).encode(packet, buffer);
 	}
 
 	read<Packet>(type: string, buffer: Uint8Array): Packet {

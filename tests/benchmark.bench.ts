@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
 import ProtoDefNode from "protodef";
-import { Protocol } from "../src/proto/Protocol.js";
+import { Protocol } from "../src/protocol/Protocol.js";
 
 const types = {
 	string: ["pstring", { countType: "u8" }],

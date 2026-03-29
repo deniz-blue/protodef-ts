@@ -1,4 +1,4 @@
-import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "./codec.js";
+import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "../codec.js";
 import NativeCodecs from "../native/index.js";
 import CodeBlockWriter from "code-block-writer";
 

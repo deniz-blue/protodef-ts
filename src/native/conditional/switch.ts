@@ -1,5 +1,5 @@
 import type CodeBlockWriter from "code-block-writer";
-import type { Codec, Context } from "../../proto/codec.js";
+import type { Codec, Context } from "../../codec.js";
 
 export type SwitchArgs = {
 	compareTo: string;

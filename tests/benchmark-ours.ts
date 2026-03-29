@@ -1,4 +1,4 @@
-import { Protocol } from "../src/proto/Protocol.js";
+import { Protocol } from "../src/protocol/Protocol.js";
 
 const types = {
 	string: ["pstring", { countType: "u8" }],

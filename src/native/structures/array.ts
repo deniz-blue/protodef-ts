@@ -1,4 +1,4 @@
-import type { Codec } from "../../proto/codec.js";
+import type { Codec } from "../../codec.js";
 
 export type ArrayArgs = ProtoDef.ICountable & { type: ProtoDef.DataType };
 
