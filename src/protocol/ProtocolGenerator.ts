@@ -1,6 +1,7 @@
 import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "../codec.js";
 import NativeCodecs from "../native/index.js";
 import CodeBlockWriter from "code-block-writer";
+import type { StreamDecoderFactory } from "./streaming.js";
 
 const globalTextDecoder = new TextDecoder();
 const globalTextEncoder = new TextEncoder();
@@ -326,6 +327,16 @@ export class ProtocolGenerator {
 		} catch (e) {
 			console.error("Error generating encoded size function:", e);
 			console.error("Generated code was:", this.generateEncodedSizeCode(type));
+			throw e;
+		}
+	}
+
+	generateStreamDecoderFunction<Packet = unknown>(type: ProtoDef.DataType) {
+		try {
+			return compile(this.generateStreamDecoderCode(type)) as StreamDecoderFactory<Packet>;
+		} catch (e) {
+			console.error("Error generating stream decoder function:", e);
+			console.error("Generated code was:", this.generateStreamDecoderCode(type));
 			throw e;
 		}
 	}

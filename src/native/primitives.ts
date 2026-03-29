@@ -41,7 +41,7 @@ export const cstring: Codec = {
 			writer
 				.writeLine(`let ${size} = 0;`)
 				.writeLine(`while (true) `).inlineBlock(() => {
-					requestBytes(1);
+					requestBytes(`${size} + 1`);
 					writer
 						.writeLine(`if (${buffer}[${offset} + ${size}] === 0x00) break;`)
 						.writeLine(`${size}++;`)
