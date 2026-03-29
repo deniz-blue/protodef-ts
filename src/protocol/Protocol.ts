@@ -1,12 +1,12 @@
+import type { StreamDecoderFactory } from "../streaming.js";
 import { ProtocolGenerator } from "./ProtocolGenerator.js";
-import { StreamDecoderDriver, type StreamDecoderDriverOptions, type StreamDecoderFactory } from "./streaming.js";
 
 export class Protocol extends ProtocolGenerator {
 	cache: Map<string, {
 		size: (packet: any) => number,
 		encode: (packet: any, buffer: Uint8Array) => void,
 		decode: (buffer: Uint8Array) => any,
-		streamDecode: StreamDecoderFactory,
+		streamDecoder: StreamDecoderFactory<any>,
 	}> = new Map();
 
 	compile(type: string) {
@@ -15,13 +15,13 @@ export class Protocol extends ProtocolGenerator {
 		const sizeFn = this.generateEncodedSizeFunction(type);
 		const encodeFn = this.generateEncoderFunction(type);
 		const decodeFn = this.generateDecoderFunction(type);
-		const streamDecodeFn = this.generateStreamDecoderFunction(type);
+		const streamDecoderFn = this.generateStreamDecoderFunction(type);
 
 		this.cache.set(type, {
 			size: sizeFn,
 			encode: encodeFn,
 			decode: decodeFn,
-			streamDecode: streamDecodeFn,
+			streamDecoder: streamDecoderFn,
 		});
 
 		return this.cache.get(type)!;
@@ -39,8 +39,7 @@ export class Protocol extends ProtocolGenerator {
 		return this.compile(type).decode(buffer) as Packet;
 	}
 
-	createStreamDecoder<Packet>(type: string, options?: StreamDecoderDriverOptions): StreamDecoderDriver<Packet> {
-		const factory = this.compile(type).streamDecode as StreamDecoderFactory<Packet>;
-		return new StreamDecoderDriver<Packet>(factory, options);
+	streamDecoder<Packet>(type: string) {
+		return this.compile(type).streamDecoder as StreamDecoderFactory<Packet>;
 	}
 };

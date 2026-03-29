@@ -1,7 +1,7 @@
 import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "../codec.js";
 import NativeCodecs from "../native/index.js";
 import CodeBlockWriter from "code-block-writer";
-import type { StreamDecoderFactory } from "./streaming.js";
+import type { StreamDecoderFactory } from "../streaming.js";
 
 const globalTextDecoder = new TextDecoder();
 const globalTextEncoder = new TextEncoder();
