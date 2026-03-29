@@ -43,8 +43,33 @@ const dataViewImpl = (
 	};
 };
 
-export const i8 = dataViewImpl("getInt8", "setInt8", 1, false, false);
-export const u8 = dataViewImpl("getUint8", "setUint8", 1, false, false);
+export const i8: Codec = {
+	decoder: (writer, { getPacket, offset, buffer }) => {
+		writer.writeLine(`${getPacket()} = ${buffer}[${offset}++] << 24 >> 24`);
+	},
+
+	encoder: (writer, { getPacket, buffer, offset }) => {
+		writer.writeLine(`${buffer}[${offset}++] = Number(${getPacket()}) & 0xFF`);
+	},
+
+	encodedSize: (writer, { size }) => void writer.writeLine(`${size}++`),
+};
+
+export const u8: Codec = {
+	decoder: (writer, { getPacket, offset, buffer }) => {
+		writer.writeLine(`${getPacket()} = ${buffer}[${offset}++]`);
+	},
+
+	encoder: (writer, { getPacket, buffer, offset }) => {
+		writer.writeLine(`${buffer}[${offset}++] = Number(${getPacket()})`);
+	},
+
+	encodedSize: (writer, { size }) => void writer.writeLine(`${size}++`),
+};
+
+export const li8 = dataViewImpl("getInt8", "setInt8", 1, true, false);
+export const lu8 = dataViewImpl("getUint8", "setUint8", 1, true, false);
+
 export const i16 = dataViewImpl("getInt16", "setInt16", 2, false, false);
 export const u16 = dataViewImpl("getUint16", "setUint16", 2, false, false);
 export const i32 = dataViewImpl("getInt32", "setInt32", 4, false, false);
@@ -54,8 +79,6 @@ export const u64 = dataViewImpl("getBigUint64", "setBigUint64", 8, false, true);
 export const f16 = dataViewImpl("getFloat16", "setFloat16", 2, false, false);
 export const f32 = dataViewImpl("getFloat32", "setFloat32", 4, false, false);
 export const f64 = dataViewImpl("getFloat64", "setFloat64", 8, false, false);
-export const li8 = dataViewImpl("getInt8", "setInt8", 1, true, false);
-export const lu8 = dataViewImpl("getUint8", "setUint8", 1, true, false);
 export const li16 = dataViewImpl("getInt16", "setInt16", 2, true, false);
 export const lu16 = dataViewImpl("getUint16", "setUint16", 2, true, false);
 export const li32 = dataViewImpl("getInt32", "setInt32", 4, true, false);

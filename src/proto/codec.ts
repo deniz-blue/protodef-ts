@@ -42,6 +42,8 @@ export interface EncoderContext<TOptions> extends Context<TOptions> {
 	view: string;
 	/** The current TextEncoder variable */
 	textEncoder: string;
+	/** Fast function name to calculate byte length of a string */
+	textByteLength: string;
 };
 
 export interface EncodedSizeContext<TOptions> extends Context<TOptions> {

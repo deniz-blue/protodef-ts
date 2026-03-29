@@ -33,6 +33,7 @@ export const pstring: Codec<PStringArgs> = {
 			else if ("count" in options && typeof options.count == "string")
 				writer.writeLine(`let ${length} = ${resolveRelativePath(options.count)}`);
 			else if ("countType" in options) {
+				writer.writeLine(`let ${length}`);
 				withNewPacket(length, () => {
 					invokeDataType(options.countType);
 				});
@@ -56,21 +57,20 @@ export const pstring: Codec<PStringArgs> = {
 		offset,
 		getPacket,
 		textEncoder,
+		textByteLength,
 	}) => {
-		withTempVar("encodedTextBuffer", (encodedTextBuffer) => {
-			writer.writeLine(`let ${encodedTextBuffer} = ${textEncoder}.encode(${getPacket()})`);
-
-			const length = `${encodedTextBuffer}.byteLength`;
+		withTempVar("byteLength", (byteLength) => {
+			writer.writeLine(`let ${byteLength} = ${textByteLength}(${getPacket()})`);
 
 			if ("countType" in options && !!options.countType) {
-				withNewPacket(length, () => {
+				withNewPacket(byteLength, () => {
 					invokeDataType(options.countType);
 				});
 			}
 
 			writer
-				.writeLine(`${buffer}.set(${encodedTextBuffer}, ${offset})`)
-				.writeLine(`${offset} += ${length}`);
+				.writeLine(`${textEncoder}.encodeInto(${getPacket()}, ${buffer}.subarray(${offset}, ${offset} + ${byteLength}))`)
+				.writeLine(`${offset} += ${byteLength}`);
 		});
 	},
 };

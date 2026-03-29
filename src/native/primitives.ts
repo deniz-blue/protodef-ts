@@ -23,14 +23,14 @@ export const Void: Codec = {
 };
 
 export const bool: Codec = {
-	encodedSize: (writer, { size }) => void writer.writeLine(`${size} += 1`),
+	encodedSize: (writer, { size }) => void writer.writeLine(`${size}++`),
 
-	decoder: (writer, { getPacket, offset, view }) => {
-		writer.writeLine(`${getPacket()} = Boolean(${view}.getInt8(${offset}++))`);
+	decoder: (writer, { getPacket, offset, buffer }) => {
+		writer.writeLine(`${getPacket()} = Boolean(${buffer}[${offset}++])`);
 	},
 
-	encoder: (writer, { getPacket, view, offset }) => {
-		writer.writeLine(`${view}.setInt8(${offset}++, +${getPacket()})`);
+	encoder: (writer, { getPacket, buffer, offset }) => {
+		writer.writeLine(`${buffer}[${offset}++] = +${getPacket()}`);
 	},
 };
 

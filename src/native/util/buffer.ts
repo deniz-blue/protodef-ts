@@ -18,6 +18,7 @@ export const buffer: Codec<BufferArgs> = {
 			else if ("count" in options && typeof options.count == "string")
 				writer.writeLine(`let ${length} = ${resolveRelativePath(options.count)}`);
 			else if ("countType" in options) {
+				writer.writeLine(`let ${length}`);
 				withNewPacket(length, () => {
 					invokeDataType(options.countType);
 				});

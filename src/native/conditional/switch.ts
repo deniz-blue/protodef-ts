@@ -26,9 +26,9 @@ const dispacher = (writer: CodeBlockWriter, {
 		if (options.compareToValue != null)
 			writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
 		else
-			writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
+			writer.writeLine(`let ${discriminant} = String(${resolveRelativePath(options.compareTo)})`);
 
-		writer.write(`switch (String(${discriminant})) `).inlineBlock(() => {
+		writer.write(`switch (${discriminant}) `).inlineBlock(() => {
 			const entries: [string, ProtoDef.DataType][] = Object.entries(options.fields);
 
 			for (let [value, type] of entries) {

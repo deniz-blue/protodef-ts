@@ -2,6 +2,31 @@ import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext
 import NativeCodecs from "../native/index.js";
 import CodeBlockWriter from "code-block-writer";
 
+const globalTextDecoder = new TextDecoder();
+const globalTextEncoder = new TextEncoder();
+export const globalTextByteLength = (str: string) => {
+	let s = str.length;
+	for (let i = str.length - 1; i >= 0; i--) {
+		let code = str.charCodeAt(i);
+		if (code > 0x7f && code <= 0x7ff) s++;
+		else if (code > 0x7ff && code <= 0xffff) s += 2;
+		if (code >= 0xDC00 && code <= 0xDFFF) i--; //trail surrogate
+	}
+	return s;
+};
+
+const textEncoderVariable = "textEncoder";
+const textDecoderVariable = "textDecoder";
+const textByteLengthVariable = "textByteLength";
+
+const compile = (code: string) => {
+	return eval(code)({
+		[textDecoderVariable]: globalTextDecoder,
+		[textEncoderVariable]: globalTextEncoder,
+		[textByteLengthVariable]: globalTextByteLength,
+	});
+};
+
 export class ProtocolGenerator {
 	natives: Record<string, Codec<unknown>> = {};
 	types: ProtoDef.Protocol = {};
@@ -77,8 +102,7 @@ export class ProtocolGenerator {
 			while (temporaryVariables.has(variable)) variable = `${hint}${i++}`;
 			temporaryVariables.add(variable);
 			writer.writeLine(`// withTempVar: ${variable}`);
-			writer.inlineBlock(() => lifetime(variable));
-			temporaryVariables.delete(variable);
+			lifetime(variable);
 		};
 
 		// == Context ==
@@ -122,13 +146,12 @@ export class ProtocolGenerator {
 		let buffer: string = "buffer";
 		let offset: string = "offset";
 		let view: string = "view";
-		let textDecoder: string = "textDecoder";
 
 		const vars = {
 			buffer,
 			offset,
-			textDecoder,
 			view,
+			textDecoder: textDecoderVariable,
 		};
 
 		const factory = this.createContextFactory<DecoderContext<unknown>>(
@@ -140,12 +163,11 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`((${buffer}) => `).inlineBlock(() => {
+		writer.write(`(({ ${textDecoderVariable}, ${textByteLengthVariable} }) => (function __decoder__(${buffer}) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${root} = {}`)
 				.writeLine(`let ${offset} = 0`)
 				.writeLine(`let ${view} = new DataView(${buffer}.buffer)`)
-				.writeLine(`let ${textDecoder} = new TextDecoder()`)
 				.blankLine();
 
 			ctx.invokeDataType(type);
@@ -153,7 +175,7 @@ export class ProtocolGenerator {
 			writer
 				.blankLine()
 				.writeLine(`return ${root}`);
-		}).write(`)`);
+		}).write(`))`);
 
 		return writer.toString();
 	}
@@ -166,13 +188,13 @@ export class ProtocolGenerator {
 		let buffer: string = "buffer";
 		let offset: string = "offset";
 		let view: string = "view";
-		let textEncoder: string = "textEncoder";
 
 		const vars = {
 			buffer,
 			offset,
-			textEncoder,
 			view,
+			textEncoder: textEncoderVariable,
+			textByteLength: textByteLengthVariable,
 		};
 
 		const factory = this.createContextFactory<EncoderContext<unknown>>(
@@ -184,11 +206,10 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`((${root}, ${buffer}) => `).inlineBlock(() => {
+		writer.write(`(({ ${textEncoderVariable}, ${textByteLengthVariable} }) => (function __encoder__(${root}, ${buffer}) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${offset} = 0`)
 				.writeLine(`let ${view} = new DataView(${buffer}.buffer)`)
-				.writeLine(`let ${textEncoder} = new TextEncoder()`)
 				.blankLine()
 
 			ctx.invokeDataType(type);
@@ -196,7 +217,7 @@ export class ProtocolGenerator {
 			writer
 				.blankLine()
 				.writeLine(`return ${buffer}`);
-		}).write(`)`);
+		}).write(`))`);
 
 		return writer.toString();
 	}
@@ -207,13 +228,11 @@ export class ProtocolGenerator {
 
 		const root: string = "packet";
 		let size: string = "size";
-		let textEncoder: string = "textEncoder";
-		let textByteLength: string = "textByteLength";
 
 		const vars = {
 			size,
-			textEncoder,
-			textByteLength,
+			textEncoder: textEncoderVariable,
+			textByteLength: textByteLengthVariable,
 		};
 
 		const factory = this.createContextFactory<EncodedSizeContext<unknown>>(
@@ -225,12 +244,9 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`((${root}) => `).inlineBlock(() => {
+		writer.write(`(({ ${textByteLengthVariable}, ${textEncoderVariable} }) => (function __encodedSize__(${root}) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${size} = 0`)
-				.writeLine(`let ${textEncoder} = new TextEncoder()`)
-				// TODO: import the faster one later
-				.writeLine(`let ${textByteLength} = (str) => ${textEncoder}.encode(str).byteLength`)
 				.blankLine()
 
 			ctx.invokeDataType(type);
@@ -238,14 +254,14 @@ export class ProtocolGenerator {
 			writer
 				.blankLine()
 				.writeLine(`return ${size}`);
-		}).write(`)`);
+		}).write(`))`);
 
 		return writer.toString();
 	}
 
 	generateEncoderFunction(type: ProtoDef.DataType) {
 		try {
-			return eval?.(this.generateEncoderCode(type)) as (packet: unknown, buffer: Uint8Array) => Uint8Array;
+			return compile(this.generateEncoderCode(type)) as (packet: unknown, buffer: Uint8Array) => Uint8Array;
 		} catch (e) {
 			console.error("Error generating encoder function:", e);
 			console.error("Generated code was:", this.generateEncoderCode(type));
@@ -255,7 +271,7 @@ export class ProtocolGenerator {
 
 	generateDecoderFunction(type: ProtoDef.DataType) {
 		try {
-			return eval?.(this.generateDecoderCode(type)) as (buffer: Uint8Array) => unknown;
+			return compile(this.generateDecoderCode(type)) as (buffer: Uint8Array) => unknown;
 		} catch (e) {
 			console.error("Error generating decoder function:", e);
 			console.error("Generated code was:", this.generateDecoderCode(type));
@@ -265,7 +281,7 @@ export class ProtocolGenerator {
 
 	generateEncodedSizeFunction(type: ProtoDef.DataType) {
 		try {
-			return eval?.(this.generateEncodedSizeCode(type)) as (packet: unknown) => number;
+			return compile(this.generateEncodedSizeCode(type)) as (packet: unknown) => number;
 		} catch (e) {
 			console.error("Error generating encoded size function:", e);
 			console.error("Generated code was:", this.generateEncodedSizeCode(type));
