@@ -38,7 +38,7 @@ export const array: Codec<ArrayArgs> = {
 				writer.write(`for (let ${i} = 0; ${i} < ${count}; ${i}++) `).inlineBlock(() => {
 					withNewPacket(`${arr}[${i}]`, () => {
 						invokeDataType(options.type);
-					}, i);
+					}, { type: "array", value: i });
 				});
 			});
 		});
@@ -61,7 +61,7 @@ export const array: Codec<ArrayArgs> = {
 			writer.write(`for (let ${i} = 0; ${i} < ${arr}.length; ${i}++) `).inlineBlock(() => {
 				withNewPacket(`${arr}[${i}]`, () => {
 					invokeDataType(options.type);
-				}, i);
+				}, { type: "array", value: i });
 			});
 		});
 	},
@@ -74,7 +74,7 @@ export const array: Codec<ArrayArgs> = {
 			writer.write(`for (let ${i} = 0; ${i} < ${getPacket()}.length; ${i}++) `).inlineBlock(() => {
 				withNewPacket(`${getPacket()}[${i}]`, () => {
 					invokeDataType(options.type);
-				}, i);
+				}, { type: "array", value: i });
 			});
 		});
 	},

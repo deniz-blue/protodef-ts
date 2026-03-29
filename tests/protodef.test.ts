@@ -1483,7 +1483,7 @@ test("utils/bitflags/8bit bitset flag big object", ({ annotate }) => {
 				}
 			],
 		},
-		packet: { "_value": 1, "onGround": true },
+		packet: { "_value": 1n, "onGround": true },
 		expectBuffer: new Uint8Array([1]),
 		annotate,
 	});

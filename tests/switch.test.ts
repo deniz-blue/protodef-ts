@@ -96,7 +96,7 @@ test("container > switch > array > switch", ({ annotate }) => {
 				{ text: "c", detailText: null },
 			],
 		},
-		expectBuffer: new Uint8Array([1, 97, 1, 0, 2, 1, 99, 0, 1, 99, 0]),
+		expectBuffer: new Uint8Array([1, 97, 1, 0, 2, 1, 99, 1, 99]),
 		annotate,
 	})
 })

@@ -21,7 +21,8 @@ const dataViewImpl = (
 	getMethod: keyof DataView & `get${string}`,
 	setMethod: keyof DataView & `set${string}`,
 	byteLength: number,
-	littleEndian?: boolean,
+	littleEndian: boolean,
+	big: boolean = false,
 ): Codec => {
 	return {
 		decoder: (writer, { getPacket, view, offset }) => {
@@ -32,7 +33,7 @@ const dataViewImpl = (
 
 		encoder: (writer, { view, offset, getPacket }) => {
 			writer
-				.writeLine(`${view}.${setMethod}(${offset}, ${getPacket()}, ${littleEndian})`)
+				.writeLine(`${view}.${setMethod}(${offset}, ${big ? "BigInt" : "Number"}(${getPacket()}), ${littleEndian})`)
 				.writeLine(`${offset} += ${byteLength}`)
 		},
 
@@ -42,25 +43,25 @@ const dataViewImpl = (
 	};
 };
 
-export const i8 = dataViewImpl("getInt8", "setInt8", 1, false);
-export const u8 = dataViewImpl("getUint8", "setUint8", 1, false);
-export const i16 = dataViewImpl("getInt16", "setInt16", 2, false);
-export const u16 = dataViewImpl("getUint16", "setUint16", 2, false);
-export const i32 = dataViewImpl("getInt32", "setInt32", 4, false);
-export const u32 = dataViewImpl("getUint32", "setUint32", 4, false);
-export const i64 = dataViewImpl("getBigInt64", "setBigInt64", 8, false);
-export const u64 = dataViewImpl("getBigUint64", "setBigUint64", 8, false);
-export const f16 = dataViewImpl("getFloat16", "setFloat16", 2, false);
-export const f32 = dataViewImpl("getFloat32", "setFloat32", 4, false);
-export const f64 = dataViewImpl("getFloat64", "setFloat64", 8, false);
-export const li8 = dataViewImpl("getInt8", "setInt8", 1, true);
-export const lu8 = dataViewImpl("getUint8", "setUint8", 1, true);
-export const li16 = dataViewImpl("getInt16", "setInt16", 2, true);
-export const lu16 = dataViewImpl("getUint16", "setUint16", 2, true);
-export const li32 = dataViewImpl("getInt32", "setInt32", 4, true);
-export const lu32 = dataViewImpl("getUint32", "setUint32", 4, true);
-export const li64 = dataViewImpl("getBigInt64", "setBigInt64", 8, true);
-export const lu64 = dataViewImpl("getBigUint64", "setBigUint64", 8, true);
-export const lf16 = dataViewImpl("getFloat16", "setFloat16", 2, true);
-export const lf32 = dataViewImpl("getFloat32", "setFloat32", 4, true);
-export const lf64 = dataViewImpl("getFloat64", "setFloat64", 8, true);
+export const i8 = dataViewImpl("getInt8", "setInt8", 1, false, false);
+export const u8 = dataViewImpl("getUint8", "setUint8", 1, false, false);
+export const i16 = dataViewImpl("getInt16", "setInt16", 2, false, false);
+export const u16 = dataViewImpl("getUint16", "setUint16", 2, false, false);
+export const i32 = dataViewImpl("getInt32", "setInt32", 4, false, false);
+export const u32 = dataViewImpl("getUint32", "setUint32", 4, false, false);
+export const i64 = dataViewImpl("getBigInt64", "setBigInt64", 8, false, true);
+export const u64 = dataViewImpl("getBigUint64", "setBigUint64", 8, false, true);
+export const f16 = dataViewImpl("getFloat16", "setFloat16", 2, false, false);
+export const f32 = dataViewImpl("getFloat32", "setFloat32", 4, false, false);
+export const f64 = dataViewImpl("getFloat64", "setFloat64", 8, false, false);
+export const li8 = dataViewImpl("getInt8", "setInt8", 1, true, false);
+export const lu8 = dataViewImpl("getUint8", "setUint8", 1, true, false);
+export const li16 = dataViewImpl("getInt16", "setInt16", 2, true, false);
+export const lu16 = dataViewImpl("getUint16", "setUint16", 2, true, false);
+export const li32 = dataViewImpl("getInt32", "setInt32", 4, true, false);
+export const lu32 = dataViewImpl("getUint32", "setUint32", 4, true, false);
+export const li64 = dataViewImpl("getBigInt64", "setBigInt64", 8, true, true);
+export const lu64 = dataViewImpl("getBigUint64", "setBigUint64", 8, true, true);
+export const lf16 = dataViewImpl("getFloat16", "setFloat16", 2, true, false);
+export const lf32 = dataViewImpl("getFloat32", "setFloat32", 4, true, false);
+export const lf64 = dataViewImpl("getFloat64", "setFloat64", 8, true, false);

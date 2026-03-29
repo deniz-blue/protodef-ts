@@ -33,13 +33,17 @@ export const bitflags: Codec<BitflagsArgs> = {
 		const lit = (v: number | bigint) => isBig ? `${v}n` : `${v}`;
 
 		withTempVar("raw", (raw) => {
+			writer.writeLine(`let ${raw}`);
+
 			withNewPacket(raw, () => {
 				invokeDataType(options.type);
 			});
 
-			writer.writeLine(`${getPacket()} = {}`);
+			if (isBig) writer.writeLine(`${raw} = BigInt(${raw})`);
 
-			writer.writeLine(`${getPacket()}._value = ${raw}`);
+			writer
+				.writeLine(`${getPacket()} = {}`)
+				.writeLine(`${getPacket()}._value = ${raw}`);
 
 			if (Array.isArray(flags)) {
 				flags.forEach((name, i) => {
@@ -67,7 +71,7 @@ export const bitflags: Codec<BitflagsArgs> = {
 		const lit = (v: number | bigint) => isBig ? `${v}n` : `${v}`;
 
 		withTempVar("raw", (raw) => {
-			writer.writeLine(`let ${raw} = ${getPacket()}._value ?? ${lit(0)};`);
+			writer.writeLine(`let ${raw} = ${isBig ? "BigInt" : ""}(${getPacket()}._value ?? 0);`);
 
 			if (Array.isArray(flags)) {
 				flags.forEach((name, i) => {

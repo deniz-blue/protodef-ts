@@ -1,4 +1,4 @@
-import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext } from "./codec.js";
+import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "./codec.js";
 import NativeCodecs from "../native/index.js";
 import CodeBlockWriter from "code-block-writer";
 
@@ -34,12 +34,12 @@ export class ProtocolGenerator {
 		// == Packeting ==
 
 		let packet: string = root;
-		let path: (string | number)[] = [packet];
+		let path: PathSegment[] = [{ value: root, type: "object" }];
 
 		const getPacket = () => packet;
 		const getPath = () => [...path];
 
-		const withNewPacket = (newPacket: string, lifetime: () => void, segment?: string | number) => {
+		const withNewPacket = (newPacket: string, lifetime: () => void, segment?: PathSegment) => {
 			const oldPacket = packet;
 			packet = newPacket;
 			if (segment !== undefined) path.push(segment);
@@ -49,21 +49,22 @@ export class ProtocolGenerator {
 		};
 
 		const resolveRelativePath = (relativePath: string) => {
-			const segments = relativePath.split("/").filter(s => s.length > 0);
-			let resolvedPath = getPath();
-			resolvedPath.pop(); // remove current packet
-			for (let segment of segments) {
-				if (segment === ".") continue;
-				else if (segment === "..") resolvedPath.pop();
-				else resolvedPath.push(segment);
+			const segments = relativePath.split("/").filter(Boolean).filter(s => s !== ".");
+
+			let path = [...getPath()];
+			path.pop();
+			for (const segment of segments) {
+				if (segment == "..") {
+					let removed;
+					do {
+						removed = path.pop();
+					} while (removed?.type == "array");
+				} else {
+					path.push({ value: segment, type: "object" });
+				};
 			}
-			let code = "" + resolvedPath[0]!;
-			for (let i = 1; i < resolvedPath.length; i++) {
-				const segment = resolvedPath[i]!;
-				if (typeof segment === "number") code += `[${segment}]`;
-				else code += `[${JSON.stringify(segment)}]`;
-			}
-			return code;
+
+			return path[0]?.value + path.slice(1).map(s => s.type == "array" ? `[${s.value}]` : `.${s.value}`).join("");
 		};
 
 		// == Temp vars ==

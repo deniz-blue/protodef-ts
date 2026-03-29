@@ -1,5 +1,10 @@
 import CodeBlockWriter from "code-block-writer";
 
+export interface PathSegment {
+	value: string;
+	type: "array" | "object";
+};
+
 export interface Context<TOptions> {
 	/** The options for the current context */
 	options: TOptions;
@@ -10,11 +15,11 @@ export interface Context<TOptions> {
 	/** Creates a temporary variable with a given hint and lifetime */
 	withTempVar(hint: string, lifetime: (variable: string) => void): void;
 	/** Changes packet variable for the duration of the given function */
-	withNewPacket(packet: string, lifetime: () => void, segment?: string | number): void;
+	withNewPacket(packet: string, lifetime: () => void, segment?: PathSegment): void;
 	/** Invokes the encoding/decoding logic for a given data type */
 	invokeDataType(type: ProtoDef.DataType): void;
 	/** Returns the path stack */
-	getPath(): (string | number)[];
+	getPath(): PathSegment[];
 };
 
 export interface DecoderContext<TOptions> extends Context<TOptions> {

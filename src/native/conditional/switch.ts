@@ -28,12 +28,8 @@ const dispacher = (writer: CodeBlockWriter, {
 		else
 			writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
 
-		writer.write(`switch (${discriminant}) `).inlineBlock(() => {
-			const entries: [any, ProtoDef.DataType][] = Object.entries(options.fields);
-
-			if (entries.every(([value]) => Number.isSafeInteger(+value))) {
-				for (const entry of entries) entry[0] = +entry[0];
-			}
+		writer.write(`switch (String(${discriminant})) `).inlineBlock(() => {
+			const entries: [string, ProtoDef.DataType][] = Object.entries(options.fields);
 
 			for (let [value, type] of entries) {
 				writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {

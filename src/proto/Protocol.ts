@@ -2,14 +2,14 @@ import { ProtocolGenerator } from "./ProtocolGenerator.js";
 
 export class Protocol extends ProtocolGenerator {
 	size<Packet>(type: ProtoDef.DataType, packet: Packet): number {
-		// debugger;
 		const fn = this.generateEncodedSizeFunction(type);
+		debugger;
 		return fn(packet);
 	}
 
 	write<Packet>(type: ProtoDef.DataType, packet: Packet, buffer: Uint8Array): void {
 		const fn = this.generateEncoderFunction(type);
-		debugger;
+		// debugger;
 		fn(packet, buffer);
 	}
 

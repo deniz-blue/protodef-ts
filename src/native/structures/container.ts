@@ -29,7 +29,7 @@ export const container: Codec<ContainerArgs> = {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
 				writer.writeLine(`// decoding field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
 				invokeDataType(field.type);
-			}, field.anon ? undefined : field.name);
+			}, field.anon ? undefined : { value: field.name, type: "object" });
 		};
 	},
 
@@ -43,7 +43,7 @@ export const container: Codec<ContainerArgs> = {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
 				writer.writeLine(`// encoding field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
 				invokeDataType(field.type);
-			}, field.anon ? undefined : field.name);
+			}, field.anon ? undefined : { value: field.name, type: "object" });
 		};
 	},
 
@@ -52,7 +52,7 @@ export const container: Codec<ContainerArgs> = {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
 				writer.writeLine(`// calculating size for field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
 				invokeDataType(field.type);
-			}, field.anon ? undefined : field.name);
+			}, field.anon ? undefined : { value: field.name, type: "object" });
 		}
 	},
 };
