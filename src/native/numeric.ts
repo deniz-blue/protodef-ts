@@ -25,7 +25,8 @@ const dataViewImpl = (
 	big: boolean = false,
 ): Codec => {
 	return {
-		decoder: (writer, { getPacket, view, offset }) => {
+		decoder: (writer, { getPacket, view, offset, requestBytes }) => {
+			requestBytes(byteLength);
 			writer
 				.writeLine(`${getPacket()} = ${view}.${getMethod}(${offset}, ${littleEndian})`)
 				.writeLine(`${offset} += ${byteLength}`)
@@ -44,7 +45,8 @@ const dataViewImpl = (
 };
 
 export const i8: Codec = {
-	decoder: (writer, { getPacket, offset, buffer }) => {
+	decoder: (writer, { getPacket, offset, buffer, requestBytes }) => {
+		requestBytes(1);
 		writer.writeLine(`${getPacket()} = ${buffer}[${offset}++] << 24 >> 24`);
 	},
 
@@ -56,7 +58,8 @@ export const i8: Codec = {
 };
 
 export const u8: Codec = {
-	decoder: (writer, { getPacket, offset, buffer }) => {
+	decoder: (writer, { getPacket, offset, buffer, requestBytes }) => {
+		requestBytes(1);
 		writer.writeLine(`${getPacket()} = ${buffer}[${offset}++]`);
 	},
 

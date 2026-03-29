@@ -26,6 +26,7 @@ export const pstring: Codec<PStringArgs> = {
 		offset,
 		getPacket,
 		textDecoder,
+		requestBytes,
 	}) => {
 		withTempVar("length", (length) => {
 			if ("count" in options && typeof options.count == "number")
@@ -38,6 +39,8 @@ export const pstring: Codec<PStringArgs> = {
 					invokeDataType(options.countType);
 				});
 			}
+
+			requestBytes(length);
 
 			withTempVar("textBuffer", (textBuffer) => {
 				writer

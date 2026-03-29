@@ -31,6 +31,8 @@ export interface DecoderContext<TOptions> extends Context<TOptions> {
 	view: string;
 	/** The current TextDecoder variable */
 	textDecoder: string;
+	/** No-op in non-streaming mode */
+	requestBytes(expr: number | string): void;
 };
 
 export interface EncoderContext<TOptions> extends Context<TOptions> {

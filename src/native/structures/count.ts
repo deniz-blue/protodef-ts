@@ -13,13 +13,8 @@ declare global {
 	}
 }
 
-const getCount = (x: any) => {
-    if(Array.isArray(x)) return x.length;
-    throw `Cannot count '${x}'`;
-};
-
 export const count: Codec<CountArgs> = {
-	decoder: (writer, { getPacket, invokeDataType, options }) => {
+	decoder: (writer, { invokeDataType, options }) => {
 		invokeDataType(options.type);
 	},
 

@@ -11,7 +11,5 @@ const protocol = new Protocol({
 	},
 });
 
-console.log(`const decoder = ` + protocol.generateDecoderCode("test1"))
-console.log(`const encoder = ` + protocol.generateEncoderCode("test1"))
-console.log(`const encodedSize = ` + protocol.generateEncodedSizeCode("test1"))
+console.log(`const decoder = ` + protocol.generateStreamDecoderCode("test1"))
 

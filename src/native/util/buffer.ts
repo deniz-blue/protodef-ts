@@ -11,7 +11,17 @@ declare global {
 }
 
 export const buffer: Codec<BufferArgs> = {
-	decoder: (writer, { withTempVar, options, resolveRelativePath, invokeDataType, withNewPacket, getPacket, buffer, offset }) => {
+	decoder: (writer, {
+		withTempVar,
+		options,
+		resolveRelativePath,
+		invokeDataType,
+		withNewPacket,
+		getPacket,
+		buffer,
+		offset,
+		requestBytes,
+	}) => {
 		withTempVar("length", (length) => {
 			if ("count" in options && typeof options.count == "number")
 				writer.writeLine(`let ${length} = ${options.count}`);
@@ -23,6 +33,8 @@ export const buffer: Codec<BufferArgs> = {
 					invokeDataType(options.countType);
 				});
 			}
+
+			requestBytes(length);
 
 			writer
 				.writeLine(`${getPacket()} = ${buffer}.slice(${offset}, ${offset} + ${length})`)

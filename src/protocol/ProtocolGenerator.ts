@@ -152,6 +152,7 @@ export class ProtocolGenerator {
 			offset,
 			view,
 			textDecoder: textDecoderVariable,
+			requestBytes: () => {},
 		};
 
 		const factory = this.createContextFactory<DecoderContext<unknown>>(
@@ -254,6 +255,46 @@ export class ProtocolGenerator {
 			writer
 				.blankLine()
 				.writeLine(`return ${size}`);
+		}).write(`))`);
+
+		return writer.toString();
+	}
+
+	/** Generates generator function string for streaming decoding packets */
+	generateStreamDecoderCode(type: ProtoDef.DataType) {
+		const writer = new CodeBlockWriter();
+
+		const root: string = "packet";
+
+		const impl = {
+			buffer: "rt.buffer",
+			offset: "rt.offset",
+			view: "rt.view",
+			textDecoder: textDecoderVariable,
+			requestBytes(expr: number | string) {
+				writer.writeLine(`while ((rt.available - rt.offset) < ${expr}) yield ${expr};`);
+			},
+		};
+
+		const factory = this.createContextFactory<DecoderContext<unknown>>(
+			writer,
+			impl,
+			(codec, ctx) => codec.decoder(writer, ctx),
+			root
+		);
+
+		const ctx = factory(null);
+
+		writer.write(`(({ ${textDecoderVariable}, ${textByteLengthVariable} }) => (function* __streamDecoder__(rt) `).inlineBlock(() => {
+			writer
+				.writeLine(`let ${root} = {}`)
+				.blankLine();
+
+			ctx.invokeDataType(type);
+
+			writer
+				.blankLine()
+				.writeLine(`return ${root}`);
 		}).write(`))`);
 
 		return writer.toString();

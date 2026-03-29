@@ -11,7 +11,8 @@ declare global {
 }
 
 export const option: & Codec<ProtoDef.DataType> = {
-	decoder: (writer, { buffer, offset, getPacket, invokeDataType, options }) => {
+	decoder: (writer, { buffer, offset, getPacket, invokeDataType, options, requestBytes }) => {
+		requestBytes(1);
 		writer.write(`if (${buffer}[${offset}++]) `).inlineBlock(() => {
 			invokeDataType(options);
 		}).write(` else ${getPacket()} = null`);

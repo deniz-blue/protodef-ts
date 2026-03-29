@@ -10,8 +10,8 @@ declare global {
 	}
 }
 
-export const Void: Codec = {	
-	encodedSize: () => {},
+export const Void: Codec = {
+	encodedSize: () => { },
 
 	decoder: (writer, { getPacket }) => {
 		writer.writeLine(`${getPacket()} = null`);
@@ -25,7 +25,8 @@ export const Void: Codec = {
 export const bool: Codec = {
 	encodedSize: (writer, { size }) => void writer.writeLine(`${size}++`),
 
-	decoder: (writer, { getPacket, offset, buffer }) => {
+	decoder: (writer, { getPacket, offset, buffer, requestBytes }) => {
+		requestBytes(1);
 		writer.writeLine(`${getPacket()} = Boolean(${buffer}[${offset}++])`);
 	},
 
@@ -35,13 +36,18 @@ export const bool: Codec = {
 };
 
 export const cstring: Codec = {
-	decoder: (writer, { getPacket, buffer, offset, textDecoder, withTempVar }) => {
+	decoder: (writer, { getPacket, buffer, offset, textDecoder, withTempVar, requestBytes }) => {
 		withTempVar("size", (size) => {
 			writer
-				.writeLine(`let ${size} = 0`)
-				.writeLine(`while (0x00 != ${buffer}[${offset} + ${size}]) ${size}++`)
-				.writeLine(`${getPacket()} = ${textDecoder}.decode(${buffer}.slice(${offset}, ${offset} + ${size}))`)
-				.writeLine(`${offset} += ${size} + 1`)
+				.writeLine(`let ${size} = 0;`)
+				.writeLine(`while (true) `).inlineBlock(() => {
+					requestBytes(1);
+					writer
+						.writeLine(`if (${buffer}[${offset} + ${size}] === 0x00) break;`)
+						.writeLine(`${size}++;`)
+				})
+				.writeLine(`${getPacket()} = ${textDecoder}.decode(${buffer}.subarray(${offset}, ${offset} + ${size}));`)
+				.writeLine(`${offset} += ${size} + 1;`);
 		});
 	},
 

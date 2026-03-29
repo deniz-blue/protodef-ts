@@ -29,9 +29,12 @@ export const bitfield: Codec<BitfieldArgs> = {
 		buffer,
 		offset,
 		getPacket,
+		requestBytes,
 	}) {
 		const totalBits = options.reduce((sum, f) => sum + f.size, 0);
 		const totalBytes = Math.ceil(totalBits / 8);
+		
+		requestBytes(totalBytes);
 
 		writer.writeLine(`${getPacket()} ??= {}`);
 

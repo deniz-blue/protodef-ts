@@ -20,14 +20,13 @@ const $impl = (
 	const lit = (v: number | bigint | string) => big ? `${v}n` : `${v}`;
 
 	const maxBytes = Math.ceil((byteSize * 8) / 7);
-	const bigIntMaybe = big ? "BigInt" : "";
 
 	return {
-		decoder: (writer, { getPacket, buffer, offset, withTempVar }) => {
-
+		decoder: (writer, { getPacket, buffer, offset, requestBytes }) => {
 			writer.writeLine(`${getPacket()} = 0${big ? "n" : ""}`);
 
 			writer.write(`for (let i = 0; i < ${maxBytes}; i++) `).inlineBlock(() => {
+				requestBytes(1);
 				writer.writeLine(`const byte = ${buffer}[${offset}++]`);
 
 				if (big) {
