@@ -26,8 +26,8 @@ const $impl = (
 		decoder: (writer, { getPacket, buffer, offset, withTempVar }) => {
 			withTempVar("position", (position) => {
 				writer
-					.writeLine(`let ${position} = 0`)
-					.writeLine(`${getPacket()} = 0`)
+					.writeLine(`let ${position} = ${lit(0)}`)
+					.writeLine(`${getPacket()} = ${lit(0)}`)
 					.write(`while (true) `).inlineBlock(() => {
 						withTempVar("byte", (byte) => {
 							const byteAccess = `${buffer}[${offset}++] ?? 0`;
@@ -55,9 +55,12 @@ const $impl = (
 				.writeLine(`${getPacket()} = ${big ? `BigInt(${getPacket()})` : getPacket()}`)
 				.writeLine(`if (${getPacket()} < ${lit(min)} || ${getPacket()} > ${lit(max)}) throw "VarInt out of bounds"`)
 				.write(`do `).inlineBlock(() => {
-					writer
+					withTempVar("byte", (byte) => {
+						writer.writeLine(`let ${byte} = ${getPacket()} & ${lit(0x7F)}`)
 						.writeLine(`${getPacket()} >>= ${lit(7)}`)
-						.writeLine(`${buffer}[${offset}++] = Number(${getPacket()} & ${lit("0x7F")}) | (${getPacket()} ? ${lit("0x80")} : 0)`);
+						.writeLine(`if (${getPacket()} != ${lit(0)}) ${byte} |= ${lit(0x80)}`)
+						.writeLine(`${buffer}[${offset}++] = Number(${byte})`);
+					});
 				}).write(` while (${getPacket()})`);
 		},
 

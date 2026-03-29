@@ -1,83 +1,22 @@
 import { test } from "vitest";
-import { roundtrip, testWriteRead } from "./utils.js";
-import { Protocol } from "../src/proto/Protocol.js";
-
-const proto = new Protocol({
-	types: {
-		u8cstringArray: ["array", {
-			countType: "u8",
-			type: "cstring",
-		}],
-		rgbEnum: ["mapper", {
-			type: "u8",
-			mappings: {
-				0: "red",
-				1: "green",
-				2: "blue",
-			},
-		}],
-		bitfieldTest: [
-			"container",
-			[
-				{
-					"anon": true,
-					"type": [
-						"bitfield",
-						[
-							{
-								"name": "metadata",
-								"size": 4,
-								"signed": false
-							},
-							{
-								"name": "blockId",
-								"size": 12,
-								"signed": false
-							}
-						]
-					]
-				},
-				{
-					"name": "y",
-					"type": "u8"
-				},
-				{
-					"anon": true,
-					"type": [
-						"bitfield",
-						[
-							{
-								"name": "z",
-								"size": 4,
-								"signed": false
-							},
-							{
-								"name": "x",
-								"size": 4,
-								"signed": false
-							}
-						]
-					]
-				}
-			]
-		],
-	},
-});
+import { roundtrip } from "./utils.js";
 
 test("cstring", ({ annotate }) => {
 	roundtrip({
-		proto,
-		type: "cstring",
+		types: {
+			test: "cstring",
+		},
 		packet: "Meow",
 		expectBuffer: new Uint8Array([77, 101, 111, 119, 0]),
 		annotate,
 	});
-	testWriteRead(proto, "cstring", "Meow", new Uint8Array([77, 101, 111, 119, 0]));
 });
 
 test("void", ({ annotate }) => {
 	roundtrip({
-		proto,
+		types: {
+			test: "void",
+		},
 		type: "void",
 		packet: null,
 		expectBuffer: new Uint8Array([]),
@@ -87,14 +26,18 @@ test("void", ({ annotate }) => {
 
 test("bool", ({ annotate }) => {
 	roundtrip({
-		proto,
+		types: {
+			test: "bool",
+		},
 		type: "bool",
 		packet: true,
 		expectBuffer: new Uint8Array([1]),
 		annotate,
 	});
 	roundtrip({
-		proto,
+		types: {
+			test: "bool",
+		},
 		type: "bool",
 		packet: false,
 		expectBuffer: new Uint8Array([0]),
@@ -105,21 +48,37 @@ test("bool", ({ annotate }) => {
 
 test("array<count:u8, cstring>", ({ annotate }) => {
 	roundtrip({
-		proto,
-		type: "u8cstringArray",
+		types: {
+			u8cstringArray: ["array", {
+				countType: "u8",
+				type: "cstring",
+			}],
+			test: "u8cstringArray",
+		},
 		packet: [],
 		expectBuffer: new Uint8Array([0]),
 		annotate,
 	});
 	roundtrip({
-		proto,
-		type: "u8cstringArray",
+		types: {
+			u8cstringArray: ["array", {
+				countType: "u8",
+				type: "cstring",
+			}],
+			test: "u8cstringArray",
+		},
 		packet: ["Meow"],
 		expectBuffer: new Uint8Array([1, 77, 101, 111, 119, 0]),
 		annotate,
 	});
 	roundtrip({
-		proto,
+		types: {
+			u8cstringArray: ["array", {
+				countType: "u8",
+				type: "cstring",
+			}],
+			test: "u8cstringArray",
+		},
 		type: "u8cstringArray",
 		packet: ["a", "b"],
 		expectBuffer: new Uint8Array([2, 97, 0, 98, 0]),
@@ -141,10 +100,9 @@ test("varint", ({ annotate }) => {
 		[-2147483648, new Uint8Array([0x80, 0x80, 0x80, 0x80, 0x08])],
 	];
 
-	for(let [value, buffer] of cases) {
+	for (let [value, buffer] of cases) {
 		roundtrip({
-			proto,
-			type: "varint",
+			types: { test: "varint" },
 			packet: value,
 			expectBuffer: buffer,
 			annotate,
@@ -154,8 +112,7 @@ test("varint", ({ annotate }) => {
 
 test("varlong", ({ annotate }) => {
 	roundtrip({
-		proto,
-		type: "varint64",
+		types: { test: "varint64" },
 		packet: 9223372036854775807n,
 		expectBuffer: new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f]),
 		annotate,
@@ -163,22 +120,37 @@ test("varlong", ({ annotate }) => {
 });
 
 test("mapper<u8>", ({ annotate }) => {
+	const rgbEnum = ["mapper", {
+		type: "u8",
+		mappings: {
+			0: "red",
+			1: "green",
+			2: "blue",
+		},
+	}] as ProtoDef.DataType;
+
 	roundtrip({
-		proto,
-		type: "rgbEnum",
+		types: {
+			rgbEnum,
+			test: "rgbEnum",
+		},
 		packet: "red",
 		expectBuffer: new Uint8Array([0]),
 		annotate,
 	});
 	roundtrip({
-		proto,
-		type: "rgbEnum",
+		types: {
+			rgbEnum,
+			test: "rgbEnum",
+		},
 		packet: "green",
 		expectBuffer: new Uint8Array([1]),
 		annotate,
 	});
 	roundtrip({
-		proto,
+		types: {
+			test: "rgbEnum",
+		},
 		type: "rgbEnum",
 		packet: "blue",
 		expectBuffer: new Uint8Array([2]),
@@ -189,8 +161,53 @@ test("mapper<u8>", ({ annotate }) => {
 test("container > bitfield (anon)", ({ annotate }) => {
 	let packet = { "metadata": 14, "blockId": 806, "y": 4, "z": 6, "x": 1 };
 	roundtrip({
-		proto,
-		type: "bitfieldTest",
+		types: {
+			test: [
+				"container",
+				[
+					{
+						"anon": true,
+						"type": [
+							"bitfield",
+							[
+								{
+									"name": "metadata",
+									"size": 4,
+									"signed": false
+								},
+								{
+									"name": "blockId",
+									"size": 12,
+									"signed": false
+								}
+							]
+						]
+					},
+					{
+						"name": "y",
+						"type": "u8"
+					},
+					{
+						"anon": true,
+						"type": [
+							"bitfield",
+							[
+								{
+									"name": "z",
+									"size": 4,
+									"signed": false
+								},
+								{
+									"name": "x",
+									"size": 4,
+									"signed": false
+								}
+							]
+						]
+					}
+				]
+			],
+		},
 		packet,
 		expectBuffer: new Uint8Array([0xe3, 0x26, 0x04, 0x61]),
 		annotate,

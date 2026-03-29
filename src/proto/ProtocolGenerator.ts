@@ -34,19 +34,36 @@ export class ProtocolGenerator {
 		// == Packeting ==
 
 		let packet: string = root;
+		let path: (string | number)[] = [packet];
 
 		const getPacket = () => packet;
+		const getPath = () => [...path];
 
-		const withNewPacket = (newPacket: string, lifetime: () => void) => {
+		const withNewPacket = (newPacket: string, lifetime: () => void, segment?: string | number) => {
 			const oldPacket = packet;
 			packet = newPacket;
+			if (segment !== undefined) path.push(segment);
 			lifetime();
 			packet = oldPacket;
+			if (segment !== undefined) path.pop();
 		};
 
 		const resolveRelativePath = (relativePath: string) => {
-			writer.writeLine(`// Unimplemented yet: ${relativePath}`);
-			return JSON.stringify(relativePath);
+			const segments = relativePath.split("/").filter(s => s.length > 0);
+			let resolvedPath = getPath();
+			resolvedPath.pop(); // remove current packet
+			for (let segment of segments) {
+				if (segment === ".") continue;
+				else if (segment === "..") resolvedPath.pop();
+				else resolvedPath.push(segment);
+			}
+			let code = "" + resolvedPath[0]!;
+			for (let i = 1; i < resolvedPath.length; i++) {
+				const segment = resolvedPath[i]!;
+				if (typeof segment === "number") code += `[${segment}]`;
+				else code += `[${JSON.stringify(segment)}]`;
+			}
+			return code;
 		};
 
 		// == Temp vars ==
@@ -76,13 +93,14 @@ export class ProtocolGenerator {
 					writer.writeLine(`// </ ${id} >`).blankLine();
 				} else if (id in this.types)
 					invokeDataType(this.types[id]!);
+				else writer.writeLine(`throw new Error("Unknown data type: ${id}")`);
 			};
 
 			const ctx = {
 				...base,
 				options,
 				invokeDataType,
-
+				getPath,
 				getPacket,
 				resolveRelativePath,
 				withNewPacket,

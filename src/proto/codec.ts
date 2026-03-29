@@ -10,9 +10,11 @@ export interface Context<TOptions> {
 	/** Creates a temporary variable with a given hint and lifetime */
 	withTempVar(hint: string, lifetime: (variable: string) => void): void;
 	/** Changes packet variable for the duration of the given function */
-	withNewPacket(packet: string, lifetime: () => void): void;
+	withNewPacket(packet: string, lifetime: () => void, segment?: string | number): void;
 	/** Invokes the encoding/decoding logic for a given data type */
 	invokeDataType(type: ProtoDef.DataType): void;
+	/** Returns the path stack */
+	getPath(): (string | number)[];
 };
 
 export interface DecoderContext<TOptions> extends Context<TOptions> {

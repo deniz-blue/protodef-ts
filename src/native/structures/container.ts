@@ -27,8 +27,9 @@ export const container: Codec<ContainerArgs> = {
 
 		for (let field of options) {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
+				writer.writeLine(`// decoding field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
 				invokeDataType(field.type);
-			});
+			}, field.anon ? undefined : field.name);
 		};
 	},
 
@@ -40,16 +41,18 @@ export const container: Codec<ContainerArgs> = {
 	}) {
 		for (let field of options) {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
+				writer.writeLine(`// encoding field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
 				invokeDataType(field.type);
-			});
+			}, field.anon ? undefined : field.name);
 		};
 	},
 
 	encodedSize(writer, { options, invokeDataType, getPacket, withNewPacket }) {
 		for (const field of options) {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
+				writer.writeLine(`// calculating size for field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
 				invokeDataType(field.type);
-			});
+			}, field.anon ? undefined : field.name);
 		}
 	},
 };

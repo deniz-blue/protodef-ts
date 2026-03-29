@@ -1,4 +1,5 @@
-import type { Codec } from "../../proto/codec.js";
+import type CodeBlockWriter from "code-block-writer";
+import type { Codec, Context } from "../../proto/codec.js";
 
 export type SwitchArgs = {
 	compareTo: string;
@@ -15,90 +16,43 @@ declare global {
 	}
 }
 
-// All three methods are the same
+const dispacher = (writer: CodeBlockWriter, {
+	withTempVar,
+	options,
+	resolveRelativePath,
+	invokeDataType,
+}: Context<SwitchArgs>) => {
+	withTempVar("discriminant", (discriminant) => {
+		if (options.compareToValue != null)
+			writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
+		else
+			writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
 
-// todo: move the common code into a helper function
+		writer.write(`switch (${discriminant}) `).inlineBlock(() => {
+			const entries: [any, ProtoDef.DataType][] = Object.entries(options.fields);
+
+			if (entries.every(([value]) => Number.isSafeInteger(+value))) {
+				for (const entry of entries) entry[0] = +entry[0];
+			}
+
+			for (let [value, type] of entries) {
+				writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
+					invokeDataType(type);
+					writer.writeLine(`break`);
+				});
+			}
+
+			if (options.default) {
+				writer.writeLine(`default:`).indent(() => {
+					invokeDataType(options.default!);
+				});
+			}
+		});
+	});
+};
 
 export const Switch: Codec<SwitchArgs> = {
-	decoder: (writer, {
-		withTempVar,
-		options,
-		resolveRelativePath,
-		invokeDataType,
-	}) => {
-		withTempVar("discriminant", (discriminant) => {
-			if (options.compareToValue != null)
-				writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
-			else
-				writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
-
-			writer.write(`switch (${discriminant}) `).inlineBlock(() => {
-				for (let [value, type] of Object.entries(options.fields)) {
-					writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
-						invokeDataType(type);
-						writer.writeLine(`break`);
-					});
-				}
-
-				if (options.default) {
-					writer.writeLine(`default:`).indent(() => {
-						invokeDataType(options.default!);
-					});
-				}
-			});
-		});
-	},
-
-	encoder: (writer, {
-		withTempVar,
-		options,
-		resolveRelativePath,
-		invokeDataType,
-	}) => {
-		withTempVar("discriminant", (discriminant) => {
-			if (options.compareToValue != null)
-				writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
-			else
-				writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
-
-			writer.write(`switch (${discriminant}) `).inlineBlock(() => {
-				for (let [value, type] of Object.entries(options.fields)) {
-					writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
-						invokeDataType(type);
-						writer.writeLine(`break`);
-					});
-				}
-
-				if (options.default) {
-					writer.writeLine(`default:`).indent(() => {
-						invokeDataType(options.default!);
-					});
-				}
-			});
-		});
-	},
-
-	encodedSize: (writer, { options, withTempVar, resolveRelativePath, invokeDataType }) => {
-		withTempVar("discriminant", (discriminant) => {
-			if (options.compareToValue != null)
-				writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
-			else
-				writer.writeLine(`let ${discriminant} = ${resolveRelativePath(options.compareTo)}`);
-
-			writer.write(`switch (${discriminant}) `).inlineBlock(() => {
-				for (let [value, type] of Object.entries(options.fields)) {
-					writer.writeLine(`case ${JSON.stringify(value)}:`).indent(() => {
-						invokeDataType(type);
-						writer.writeLine(`break`);
-					});
-				}
-
-				if (options.default) {
-					writer.writeLine(`default:`).indent(() => {
-						invokeDataType(options.default!);
-					});
-				}
-			});
-		});
-	},
+	decoder: dispacher,
+	encoder: dispacher,
+	encodedSize: dispacher,
 };
