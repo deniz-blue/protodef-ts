@@ -19,26 +19,38 @@ const $impl = (
 ): Codec => {
 	const lit = (v: number | bigint | string) => big ? `${v}n` : `${v}`;
 
-	const max = big ? (1n << BigInt(byteSize * 7)) - 1n : (1 << (byteSize * 7)) - 1;
-	const min = big ? -(1n << BigInt(byteSize * 7)) : -(1 << (byteSize * 7));
+	const maxBytes = Math.ceil((byteSize * 8) / 7);
+	const bigIntMaybe = big ? "BigInt" : "";
 
 	return {
 		decoder: (writer, { getPacket, buffer, offset, withTempVar }) => {
-			withTempVar("position", (position) => {
-				writer
-					.writeLine(`let ${position} = ${lit(0)}`)
-					.writeLine(`${getPacket()} = ${lit(0)}`)
-					.write(`while (true) `).inlineBlock(() => {
-						withTempVar("byte", (byte) => {
-							const byteAccess = `${buffer}[${offset}++] ?? 0`;
-							writer
-								.writeLine(`let ${byte} = ${big ? `BigInt(${byteAccess})` : byteAccess}`)
-								.writeLine(`${getPacket()} |= (${big ? `BigInt(${byte})` : byte} & ${lit(0x7F)}) << ${position}`)
-								.writeLine(`if ((${byte} & ${lit(0x80)}) == 0) break`)
-								.writeLine(`${position} += ${lit(7)}`)
-								.writeLine(`if (${position} >= ${lit(byteSize * 7)}) throw "VarInt too big"`);
-						});
+
+			writer.writeLine(`${getPacket()} = 0${big ? "n" : ""}`);
+
+			writer.write(`for (let i = 0; i < ${maxBytes}; i++) `).inlineBlock(() => {
+				writer.writeLine(`const byte = ${buffer}[${offset}++]`);
+
+				if (big) {
+					writer.writeLine(`${getPacket()} |= BigInt(byte & 0x7F) << BigInt(i * 7)`);
+					writer.writeLine(`if (!(byte & 0x80)) `).inlineBlock(() => {
+						writer
+							.writeLine(`${getPacket()} = BigInt.asIntN(${byteSize * 8}, ${getPacket()})`)
+							.writeLine(`break`);
 					});
+				} else {
+					writer.write(`if (i < 4) `).inlineBlock(() => {
+						writer.writeLine(`${getPacket()} |= (byte & 0x7F) << (i * 7)`);
+					}).write(` else `).inlineBlock(() => {
+						writer.writeLine(`${getPacket()} += (byte & 0x7F) * 268435456`);
+					});
+					writer.writeLine(`if (!(byte & 0x80)) `).inlineBlock(() => {
+						writer
+							.writeLine(`${getPacket()} |= 0`)
+							.writeLine(`break`);
+					});
+				}
+
+				writer.writeLine(`if (i === ${maxBytes - 1}) throw "varint too big"`);
 			});
 
 			if (zigzag) {
@@ -48,29 +60,29 @@ const $impl = (
 
 		encoder: (writer, { getPacket, buffer, offset, withTempVar }) => {
 			if (zigzag) {
-				writer.writeLine(`${getPacket()} = ((${getPacket()} << ${lit(1)}) ^ (${getPacket()} >> ${lit(byteSize * 7 - 1)}))`);
+				writer.writeLine(`${getPacket()} = ((${getPacket()} << ${lit(1)}) ^ (${getPacket()} >> ${lit(byteSize * 8 - 1)}))`);
 			}
 
-			writer
-				.writeLine(`${getPacket()} = ${big ? `BigInt(${getPacket()})` : getPacket()}`)
-				.writeLine(`if (${getPacket()} < ${lit(min)} || ${getPacket()} > ${lit(max)}) throw "VarInt out of bounds"`)
-				.write(`do `).inlineBlock(() => {
-					withTempVar("byte", (byte) => {
-						writer.writeLine(`let ${byte} = ${getPacket()} & ${lit(0x7F)}`)
-						.writeLine(`${getPacket()} >>= ${lit(7)}`)
-						.writeLine(`if (${getPacket()} != ${lit(0)}) ${byte} |= ${lit(0x80)}`)
-						.writeLine(`${buffer}[${offset}++] = Number(${byte})`);
-					});
-				}).write(` while (${getPacket()})`);
+			writer.writeLine(`${getPacket()} = ${big ? `BigInt.asUintN(${byteSize * 8}, ${getPacket()})` : `${getPacket()} >>> 0`}`);
+
+			writer.write(`while (${getPacket()} > ${lit(127)}) `).inlineBlock(() => {
+				writer
+					.writeLine(`${buffer}[${offset}++] = ${big ? "Number" : ""}((${getPacket()} & ${lit(0x7F)}) | ${lit(0x80)})`)
+					.writeLine(`${getPacket()} ${big ? `>>=` : `>>>=`} ${lit(7)}`);
+			});
+
+			writer.writeLine(`${buffer}[${offset}++] = ${big ? "Number" : ""}(${getPacket()})`);
 		},
 
-		encodedSize(writer, { size, getPacket }) {
-			writer
-				.writeLine(`${getPacket()} = ${big ? `BigInt(${getPacket()})` : getPacket()}`)
-				.write(`do `).inlineBlock(() => {
-					writer.writeLine(`${getPacket()} >>= ${lit(7)}`)
-					writer.writeLine(`${size}++`);
-				}).write(` while (${getPacket()})`)
+		encodedSize(writer, { size, getPacket, withTempVar }) {
+			withTempVar("value", (value) => {
+				writer
+					.writeLine(`let ${value} = ${big ? `BigInt.asUintN(${byteSize * 8}, ${getPacket()})` : `${getPacket()} >>> 0`}`)
+					.write(`do `).inlineBlock(() => {
+						writer.writeLine(`${size}++`);
+						writer.writeLine(`${value} ${big ? `>>=` : `>>>=`} ${lit(7)}`)
+					}).write(` while (${value} > 0${big ? "n" : ""})`);
+			});
 		},
 	};
 };

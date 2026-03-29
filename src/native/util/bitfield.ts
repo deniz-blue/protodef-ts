@@ -29,12 +29,11 @@ export const bitfield: Codec<BitfieldArgs> = {
 		buffer,
 		offset,
 		getPacket,
-		getPath,
 	}) {
 		const totalBits = options.reduce((sum, f) => sum + f.size, 0);
 		const totalBytes = Math.ceil(totalBits / 8);
 
-		if (getPath().length > 1) writer.writeLine(`${getPacket()} = {}`);
+		writer.writeLine(`${getPacket()} ??= {}`);
 
 		withTempVar("raw", (raw) => {
 			writer.writeLine(`let ${raw} = 0n;`);
@@ -59,7 +58,7 @@ export const bitfield: Codec<BitfieldArgs> = {
 					val = `((${val} ^ ${signHex}) - ${signHex})`;
 				}
 
-				writer.writeLine(`${getPacket()}.${field.name} = ${val}`);
+				writer.writeLine(`${getPacket()}.${field.name} = Number(${val})`);
 			});
 
 			writer.writeLine(`${offset} += ${totalBytes}`);

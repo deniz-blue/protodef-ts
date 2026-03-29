@@ -22,9 +22,10 @@ export const mapper: Codec<MapperArgs> = {
 		getPacket,
 	}) {
 		withTempVar("map", (map) => {
-			writer.writeLine(`let ${map} = ${JSON.stringify(options.mappings, null, 2)}`);
-			invokeDataType(options.type);
+			const inverse = Object.fromEntries(Object.entries(options.mappings).map(([k, v]) => [v, k]));
+			writer.writeLine(`let ${map} = ${JSON.stringify(inverse, null, 2)}`);
 			writer.writeLine(`${getPacket()} = ${map}[${getPacket()}]`);
+			invokeDataType(options.type);
 		});
 	},
 
@@ -36,8 +37,7 @@ export const mapper: Codec<MapperArgs> = {
 	}) {
 		invokeDataType(options.type);
 		withTempVar("map", (map) => {
-			const inverse = Object.fromEntries(Object.entries(options.mappings).map(([k, v]) => [v, k]));
-			writer.writeLine(`let ${map} = ${JSON.stringify(inverse, null, 2)}`);
+			writer.writeLine(`let ${map} = ${JSON.stringify(options.mappings, null, 2)}`);
 			writer.writeLine(`${getPacket()} = ${map}[${getPacket()}]`);
 		});
 	},

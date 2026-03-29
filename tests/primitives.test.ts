@@ -1,4 +1,4 @@
-import { test } from "vitest";
+import { suite, test } from "vitest";
 import { roundtrip } from "./utils.js";
 
 test("cstring", ({ annotate }) => {
@@ -86,28 +86,31 @@ test("array<count:u8, cstring>", ({ annotate }) => {
 	});
 });
 
-test("varint", ({ annotate }) => {
-	const cases: [number, Uint8Array][] = [
-		[0, new Uint8Array([0x00])],
-		[2, new Uint8Array([0x02])],
-		[127, new Uint8Array([0x7f])],
-		[128, new Uint8Array([0x80, 0x01])],
-		[255, new Uint8Array([0xff, 0x01])],
-		[25565, new Uint8Array([0xdd, 0xc7, 0x01])],
-		[2097151, new Uint8Array([0xff, 0xff, 0x7f])],
-		[2147483647, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x07])],
-		[-1, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x0f])],
-		[-2147483648, new Uint8Array([0x80, 0x80, 0x80, 0x80, 0x08])],
-	];
-
-	for (let [value, buffer] of cases) {
+const varintTest = (value: number, buffer: Uint8Array) => {
+	return ({ annotate }: { annotate: (a: string) => void }) => {
 		roundtrip({
-			types: { test: "varint" },
+			types: {
+				test: "varint",
+			},
 			packet: value,
 			expectBuffer: buffer,
 			annotate,
 		});
-	}
+	};
+};
+
+suite("varint", () => {
+	test("varint 0", varintTest(0, new Uint8Array([0x00])));
+	test("varint 2", varintTest(2, new Uint8Array([0x02])));
+	test("varint 127", varintTest(127, new Uint8Array([0x7f])));
+	test("varint 128", varintTest(128, new Uint8Array([0x80, 0x01])));
+	test("varint -1", varintTest(-1, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x0f])));
+	test("varint -2", varintTest(-2, new Uint8Array([254, 255, 255, 255, 15])));
+	test("varint -2147483648", varintTest(-2147483648, new Uint8Array([0x80, 0x80, 0x80, 0x80, 0x08])));
+	test("varint 2147483647", varintTest(2147483647, new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x07])));
+	test("varint 255", varintTest(255, new Uint8Array([0xff, 0x01])));
+	test("varint 25565", varintTest(25565, new Uint8Array([0xdd, 0xc7, 0x01])));
+	test("varint 2097151", varintTest(2097151, new Uint8Array([0xff, 0xff, 0x7f])));
 });
 
 test("varlong", ({ annotate }) => {
@@ -149,9 +152,9 @@ test("mapper<u8>", ({ annotate }) => {
 	});
 	roundtrip({
 		types: {
+			rgbEnum,
 			test: "rgbEnum",
 		},
-		type: "rgbEnum",
 		packet: "blue",
 		expectBuffer: new Uint8Array([2]),
 		annotate,
