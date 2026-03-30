@@ -14,7 +14,8 @@
 		"./codecs": "./dist/codecs/index.js"
 	},
 	"scripts": {
-		"test": "vitest"
+		"test": "vitest",
+		"build": "tsc"
 	},
 	"keywords": [],
 	"author": "deniz-blue",
