@@ -1,5 +1,6 @@
 import { test } from "vitest";
 import { roundtrip } from "./utils.js";
+import type {} from "../src";
 
 const types: Record<string, ProtoDef.DataType> = {
 	string: ["pstring", { countType: "u8" }],

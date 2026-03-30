@@ -1,7 +1,8 @@
 {
 	"name": "protodef-ts",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "A modern ProtoDef implementation in TypeScript",
+	"author": "deniz.blue <deniz@deniz.blue>",
 	"type": "module",
 	"files": [
 		"/dist"
@@ -17,8 +18,14 @@
 		"test": "vitest",
 		"build": "tsc"
 	},
-	"keywords": [],
-	"author": "deniz-blue",
+	"keywords": [
+		"protodef",
+		"protocol",
+		"serialization",
+		"deserialization",
+		"networking",
+		"data formats"
+	],
 	"license": "MIT",
 	"packageManager": "pnpm@10.5.2",
 	"dependencies": {

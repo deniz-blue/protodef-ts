@@ -55,19 +55,21 @@ export interface EncodedSizeContext<TOptions> extends Context<TOptions> {
 	textByteLength: string;
 };
 
-export interface Decoder<TOptions> {
+/** ! experimental */
+interface TypeGenContext<TOptions> {
+	/** The options for the current context */
+	options: TOptions;
+	/** The current type name */
+	typeName: string;
+
+	fork(relativePath: string, cases: Record<string, ProtoDef.DataType>): void;
+};
+
+export interface Codec<TOptions = void> {
 	/** Buffer to object */
 	decoder(writer: CodeBlockWriter, ctx: DecoderContext<TOptions>): void;
-};
-
-export interface Encoder<TOptions> {
 	/** Object to buffer */
 	encoder(writer: CodeBlockWriter, vars: EncoderContext<TOptions>): void;
-};
-
-export interface EncodedSize<TOptions> {
 	/** Object to buffer size */
 	encodedSize(writer: CodeBlockWriter, ctx: EncodedSizeContext<TOptions>): void;
 };
-
-export type Codec<TOptions = void> = Decoder<TOptions> & Encoder<TOptions> & EncodedSize<TOptions>;
