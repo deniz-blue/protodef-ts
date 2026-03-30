@@ -1,11 +1,11 @@
 import type { StreamDecoder, StreamDecoderFactory, StreamDecodeRuntime } from "../streaming.js";
 
-export interface StreamDecoderDriverOptions {
+export interface SimpleRuntimeOptions {
 	/** Initial shared buffer capacity in bytes */
 	initialCapacity?: number;
 };
 
-export class StreamDecoderDriver<Packet = unknown> implements StreamDecodeRuntime {
+export class SimpleRuntime<Packet = unknown> implements StreamDecodeRuntime {
 	buffer: Uint8Array;
 	view: DataView;
 	available: number = 0;
@@ -16,7 +16,7 @@ export class StreamDecoderDriver<Packet = unknown> implements StreamDecodeRuntim
 
 	constructor(
 		public factory: StreamDecoderFactory<Packet>,
-		{ initialCapacity = 4096 }: StreamDecoderDriverOptions = {},
+		{ initialCapacity = 4096 }: SimpleRuntimeOptions = {},
 	) {
 		this.buffer = new Uint8Array(initialCapacity);
 		this.view = new DataView(this.buffer.buffer, this.buffer.byteOffset, this.buffer.byteLength);

@@ -71,4 +71,3 @@ export interface EncodedSize<TOptions> {
 };
 
 export type Codec<TOptions = void> = Decoder<TOptions> & Encoder<TOptions> & EncodedSize<TOptions>;
-

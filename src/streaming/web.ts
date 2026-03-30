@@ -1,5 +1,5 @@
 import type { StreamDecoderFactory } from "../streaming.js";
-import { StreamDecoderDriver } from "./driver.js";
+import { SimpleRuntime } from "./simple.js";
 
 export interface DecodeTransformOptions {
 	/**
@@ -17,7 +17,7 @@ export const createDecodeTransform = <Packet = unknown>(
 	options: DecodeTransformOptions = {},
 ): TransformStream<Uint8Array, Packet> => {
 	const { allowIncompleteOnFlush = false, ...driverOptions } = options;
-	const driver = new StreamDecoderDriver(factory, driverOptions);
+	const driver = new SimpleRuntime(factory, driverOptions);
 
 	return new TransformStream<Uint8Array, Packet>({
 		transform(chunk, controller) {

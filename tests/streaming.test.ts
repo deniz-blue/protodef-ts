@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { Protocol } from "../src/protocol/Protocol.js";
-import { StreamDecoderDriver } from "../src/streaming/driver.js";
+import { SimpleRuntime } from "../src/streaming/simple.js";
 import { createDecodeTransform } from "../src/streaming/web.js";
 
 const readAll = async <T>(readable: ReadableStream<T>): Promise<T[]> => {
@@ -24,7 +24,7 @@ test("stream decode: varint across chunk boundary", () => {
 	});
 
 	const streamDecoder = proto.streamDecoder<number>("test");
-	const driver = new StreamDecoderDriver(streamDecoder, { initialCapacity: 2 });
+	const driver = new SimpleRuntime(streamDecoder, { initialCapacity: 2 });
 
 	driver.push(new Uint8Array([0xdd, 0xc7]));
 	expect(driver.decode()).toEqual([]);
@@ -40,7 +40,7 @@ test("stream decode: multiple cstring packets", () => {
 	});
 
 	const streamDecoder = proto.streamDecoder<string>("test");
-	const driver = new StreamDecoderDriver(streamDecoder, { initialCapacity: 4 });
+	const driver = new SimpleRuntime(streamDecoder, { initialCapacity: 4 });
 	const out: string[] = [];
 
 	driver.push(new Uint8Array([77]));
@@ -59,7 +59,7 @@ test("stream decode: pstring with dynamic countType", () => {
 	});
 
 	const streamDecoder = proto.streamDecoder<string>("test");
-	const driver = new StreamDecoderDriver(streamDecoder, { initialCapacity: 3 });
+	const driver = new SimpleRuntime(streamDecoder, { initialCapacity: 3 });
 
 	driver.push(new Uint8Array([4, 77]));
 	expect(driver.decode()).toEqual([]);

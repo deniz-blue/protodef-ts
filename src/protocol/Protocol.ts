@@ -12,10 +12,10 @@ export class Protocol extends ProtocolGenerator {
 	compile(type: string) {
 		if (this.cache.has(type)) return this.cache.get(type)!;
 
-		const sizeFn = this.generateEncodedSizeFunction(type);
-		const encodeFn = this.generateEncoderFunction(type);
-		const decodeFn = this.generateDecoderFunction(type);
-		const streamDecoderFn = this.generateStreamDecoderFunction(type);
+		const sizeFn = this.compileFunction<(packet: any) => number>(this.generateEncodedSizeCode(type));
+		const encodeFn = this.compileFunction<(packet: any, buffer: Uint8Array) => void>(this.generateEncoderCode(type));
+		const decodeFn = this.compileFunction<(buffer: Uint8Array) => any>(this.generateDecoderCode(type));
+		const streamDecoderFn = this.compileFunction<StreamDecoderFactory<any>>(this.generateStreamDecoderCode(type));
 
 		this.cache.set(type, {
 			size: sizeFn,

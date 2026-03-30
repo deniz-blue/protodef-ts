@@ -1,11 +1,10 @@
 import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "../codec.js";
-import NativeCodecs from "../native/index.js";
+import NativeCodecs from "../codecs/index.js";
 import CodeBlockWriter from "code-block-writer";
-import type { StreamDecoderFactory } from "../streaming.js";
 
-const globalTextDecoder = new TextDecoder();
-const globalTextEncoder = new TextEncoder();
-export const globalTextByteLength = (str: string) => {
+const implTextDecoder = new TextDecoder();
+const implTextEncoder = new TextEncoder();
+export const implTextByteLength = (str: string) => {
 	let s = str.length;
 	for (let i = str.length - 1; i >= 0; i--) {
 		let code = str.charCodeAt(i);
@@ -16,32 +15,36 @@ export const globalTextByteLength = (str: string) => {
 	return s;
 };
 
-const textEncoderVariable = "textEncoder";
-const textDecoderVariable = "textDecoder";
-const textByteLengthVariable = "textByteLength";
+const textEncoder = "textEncoder";
+const textDecoder = "textDecoder";
+const textByteLength = "textByteLength";
 
 const compile = (code: string) => {
 	return eval(code)({
-		[textDecoderVariable]: globalTextDecoder,
-		[textEncoderVariable]: globalTextEncoder,
-		[textByteLengthVariable]: globalTextByteLength,
+		[textDecoder]: implTextDecoder,
+		[textEncoder]: implTextEncoder,
+		[textByteLength]: implTextByteLength,
 	});
 };
 
 export class ProtocolGenerator {
 	natives: Record<string, Codec<unknown>> = {};
 	types: ProtoDef.Protocol = {};
+	debug: boolean = false;
 
 	constructor({
 		natives,
 		types,
 		noStd,
+		debug,
 	}: {
 		natives?: Record<string, Codec<unknown>>;
 		noStd?: boolean;
 		types?: ProtoDef.Protocol;
+		debug?: boolean;
 	} = {}) {
 		this.types = types || {};
+		this.debug = debug || false;
 
 		if (noStd !== true)
 			for (let [k, v] of Object.entries(NativeCodecs))
@@ -102,7 +105,7 @@ export class ProtocolGenerator {
 			let i = 0;
 			while (temporaryVariables.has(variable)) variable = `${hint}${i++}`;
 			temporaryVariables.add(variable);
-			writer.writeLine(`// withTempVar: ${variable}`);
+			if (this.debug) writer.writeLine(`// withTempVar: ${variable}`);
 			lifetime(variable);
 		};
 
@@ -114,12 +117,12 @@ export class ProtocolGenerator {
 				const newCtx = create(options);
 
 				if (id in this.natives) {
-					writer.writeLine(`// < ${id} >`);
+					if (this.debug) writer.writeLine(`// < ${id} >`);
 					onCodecInvoke(this.natives[id]!, newCtx);
-					writer.writeLine(`// </ ${id} >`).blankLine();
+					if (this.debug) writer.writeLine(`// </ ${id} >`).blankLine();
 				} else if (id in this.types)
 					invokeDataType(this.types[id]!);
-				else writer.writeLine(`throw new Error("Unknown data type: ${id}")`);
+				else throw new Error(`Unknown data type: ${id}`);
 			};
 
 			const ctx = {
@@ -152,8 +155,8 @@ export class ProtocolGenerator {
 			buffer,
 			offset,
 			view,
-			textDecoder: textDecoderVariable,
-			requestBytes: () => {},
+			textDecoder: textDecoder,
+			requestBytes: () => { },
 		};
 
 		const factory = this.createContextFactory<DecoderContext<unknown>>(
@@ -165,7 +168,7 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`(({ ${textDecoderVariable}, ${textByteLengthVariable} }) => (function __decoder__(${buffer}) `).inlineBlock(() => {
+		writer.write(`(({ ${textDecoder}, ${textByteLength} }) => (function __decoder__(${buffer}) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${root} = {}`)
 				.writeLine(`let ${offset} = 0`)
@@ -195,8 +198,8 @@ export class ProtocolGenerator {
 			buffer,
 			offset,
 			view,
-			textEncoder: textEncoderVariable,
-			textByteLength: textByteLengthVariable,
+			textEncoder: textEncoder,
+			textByteLength: textByteLength,
 		};
 
 		const factory = this.createContextFactory<EncoderContext<unknown>>(
@@ -208,7 +211,7 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`(({ ${textEncoderVariable}, ${textByteLengthVariable} }) => (function __encoder__(${root}, ${buffer}) `).inlineBlock(() => {
+		writer.write(`(({ ${textEncoder}, ${textByteLength} }) => (function __encoder__(${root}, ${buffer}) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${offset} = 0`)
 				.writeLine(`let ${view} = new DataView(${buffer}.buffer)`)
@@ -233,8 +236,8 @@ export class ProtocolGenerator {
 
 		const vars = {
 			size,
-			textEncoder: textEncoderVariable,
-			textByteLength: textByteLengthVariable,
+			textEncoder: textEncoder,
+			textByteLength: textByteLength,
 		};
 
 		const factory = this.createContextFactory<EncodedSizeContext<unknown>>(
@@ -246,7 +249,7 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`(({ ${textByteLengthVariable}, ${textEncoderVariable} }) => (function __encodedSize__(${root}) `).inlineBlock(() => {
+		writer.write(`(({ ${textByteLength}, ${textEncoder} }) => (function __encodedSize__(${root}) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${size} = 0`)
 				.blankLine()
@@ -271,7 +274,7 @@ export class ProtocolGenerator {
 			buffer: "rt.buffer",
 			offset: "rt.offset",
 			view: "rt.view",
-			textDecoder: textDecoderVariable,
+			textDecoder: textDecoder,
 			requestBytes(expr: number | string) {
 				writer.writeLine(`while ((rt.available - rt.offset) < ${expr}) yield ${expr};`);
 			},
@@ -286,7 +289,7 @@ export class ProtocolGenerator {
 
 		const ctx = factory(null);
 
-		writer.write(`(({ ${textDecoderVariable}, ${textByteLengthVariable} }) => (function* __streamDecoder__(rt) `).inlineBlock(() => {
+		writer.write(`(({ ${textDecoder}, ${textByteLength} }) => (function* __streamDecoder__(rt) `).inlineBlock(() => {
 			writer
 				.writeLine(`let ${root} = {}`)
 				.blankLine();
@@ -301,42 +304,12 @@ export class ProtocolGenerator {
 		return writer.toString();
 	}
 
-	generateEncoderFunction(type: ProtoDef.DataType) {
+	compileFunction<F extends Function>(code: string): F {
 		try {
-			return compile(this.generateEncoderCode(type)) as (packet: unknown, buffer: Uint8Array) => Uint8Array;
+			return compile(code) as F;
 		} catch (e) {
-			console.error("Error generating encoder function:", e);
-			console.error("Generated code was:", this.generateEncoderCode(type));
-			throw e;
-		}
-	}
-
-	generateDecoderFunction(type: ProtoDef.DataType) {
-		try {
-			return compile(this.generateDecoderCode(type)) as (buffer: Uint8Array) => unknown;
-		} catch (e) {
-			console.error("Error generating decoder function:", e);
-			console.error("Generated code was:", this.generateDecoderCode(type));
-			throw e;
-		}
-	}
-
-	generateEncodedSizeFunction(type: ProtoDef.DataType) {
-		try {
-			return compile(this.generateEncodedSizeCode(type)) as (packet: unknown) => number;
-		} catch (e) {
-			console.error("Error generating encoded size function:", e);
-			console.error("Generated code was:", this.generateEncodedSizeCode(type));
-			throw e;
-		}
-	}
-
-	generateStreamDecoderFunction<Packet = unknown>(type: ProtoDef.DataType) {
-		try {
-			return compile(this.generateStreamDecoderCode(type)) as StreamDecoderFactory<Packet>;
-		} catch (e) {
-			console.error("Error generating stream decoder function:", e);
-			console.error("Generated code was:", this.generateStreamDecoderCode(type));
+			console.error("Error compiling function:", e);
+			console.error("Generated code was:", code);
 			throw e;
 		}
 	}
