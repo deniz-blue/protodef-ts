@@ -1,4 +1,4 @@
-# protodef-ts
+# protodef-next
 
 A modern [ProtoDef](https://github.com/ProtoDef-io/ProtoDef) implementation in TypeScript.
 
@@ -14,7 +14,7 @@ It's also almost as fast as compiled node-protodef!
 ## Usage
 
 ```ts
-import { Protocol } from 'protodef-ts';
+import { Protocol } from 'protodef-next';
 
 const protocol = new Protocol({
 	types: {
