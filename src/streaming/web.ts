@@ -31,8 +31,8 @@ export const createDecodeTransform = <Packet = unknown>(
 				controller.enqueue(packet);
 			}
 
-			if (!allowIncompleteOnFlush && driver.isIncomplete())
-				throw new Error("Stream ended with an incomplete packet");
+			if (!allowIncompleteOnFlush && driver.hasBytes())
+				throw new Error("Stream ended with unprocessed trailing bytes");
 		},
 	});
 };

@@ -56,15 +56,14 @@ let rt = {
 }
 
 const iter = streamDecoder(rt);
-let state;
-do {
-  state = iter.next();
-  if (!state.done) {
-    alloc(state.value);
-  }
-} while (!state.done);
 
-let packet = state.value;
+let state = iter.next();
+if (!state.done) {
+	// state.value is the amount of bytes the decoder needs to proceed
+	// call iter.next() again after appending at least that amount of bytes to the buffer
+} else {
+	let packet = state.value; // decoded packet
+}
 ```
 
 A stream decoder generator function takes in a `StreamDecodeRuntime` and returns a generator.
@@ -74,6 +73,23 @@ The returned generator uses the buffer, offset, available amount and the data vi
 The generator *yields* (`next()` returns with `{ done: false, value: number }`) a number when it reaches the end of the available buffer. The yielded number is the amount of bytes the decoder needs to proceed; the caller must only run `next()` again after the shared buffer gets appended at least that amount of bytes.
 
 When a packet is successfully decoded, the generator returns the decoded packet. (`next()` returns `{ done: true, value: Packet }`)
+
+You can use the `SimpleRuntime` class to use the stream decoder more easily:
+
+```ts
+import { SimpleRuntime } from 'protodef-next';
+
+const streamDecoder = protocol.streamDecoder("myPacket");
+const runtime = new SimpleRuntime(streamDecoder);
+
+// 1. Append bytes to the runtime's buffer as they come in
+runtime.push(/* Uint8Array */ chunk);
+
+// 2. Decode as much as possible
+const packets = runtime.decode();
+
+// 3. Repeat until the stream ends
+```
 
 ## Codecs
 
