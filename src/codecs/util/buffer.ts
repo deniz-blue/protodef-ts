@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir } from "../../typegen/ir.js";
 
 export type BufferArgs = ProtoDef.ICountable & { rest?: boolean };
 
@@ -14,7 +15,7 @@ export const buffer: Codec<BufferArgs> = {
 	decoder: (writer, {
 		withTempVar,
 		options,
-		resolveRelativePath,
+		resolveRelativePathCode,
 		invokeDataType,
 		withNewPacket,
 		getPacket,
@@ -26,7 +27,7 @@ export const buffer: Codec<BufferArgs> = {
 			if ("count" in options && typeof options.count == "number")
 				writer.writeLine(`let ${length} = ${options.count}`);
 			else if ("count" in options && typeof options.count == "string")
-				writer.writeLine(`let ${length} = ${resolveRelativePath(options.count)}`);
+				writer.writeLine(`let ${length} = ${resolveRelativePathCode(options.count)}`);
 			else if ("countType" in options) {
 				writer.writeLine(`let ${length}`);
 				withNewPacket(length, () => {
@@ -67,4 +68,6 @@ export const buffer: Codec<BufferArgs> = {
 
 		writer.writeLine(`size += ${length}`);
 	},
+
+	getIR: () => ir.identifier("ArrayBufferLike"),
 };

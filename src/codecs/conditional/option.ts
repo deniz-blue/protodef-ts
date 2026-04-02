@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir } from "../../typegen/ir.js";
 
 type Option = ["option", ProtoDef.DataType];
 
@@ -33,5 +34,14 @@ export const option: & Codec<ProtoDef.DataType> = {
 		writer.write(`if (${getPacket()} != null) `).inlineBlock(() => {
 			invokeDataType(options);
 		});
+	},
+
+	getIR: ({ options, getIR }) => {
+		const valueIR = getIR(options);
+		return ir.union([valueIR, ...ir.nullish().types]);
+	},
+
+	preprocessTypeGen(ctx) {
+		ctx.invokeDataType(ctx.options);
 	},
 };

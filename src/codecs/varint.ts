@@ -83,6 +83,11 @@ const $impl = (
 					}).write(` while (${value} > 0${big ? "n" : ""})`);
 			});
 		},
+
+		getIR: () => ({
+			kind: "identifier",
+			identifier: big ? "bigint" : "number",
+		}),
 	};
 };
 

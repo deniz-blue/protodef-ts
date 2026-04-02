@@ -19,14 +19,14 @@ declare global {
 const dispacher = (writer: CodeBlockWriter, {
 	withTempVar,
 	options,
-	resolveRelativePath,
+	resolveRelativePathCode,
 	invokeDataType,
 }: Context<SwitchArgs>) => {
 	withTempVar("discriminant", (discriminant) => {
 		if (options.compareToValue != null)
 			writer.writeLine(`let ${discriminant} = ${JSON.stringify(options.compareToValue)}`);
 		else
-			writer.writeLine(`let ${discriminant} = String(${resolveRelativePath(options.compareTo)})`);
+			writer.writeLine(`let ${discriminant} = String(${resolveRelativePathCode(options.compareTo)})`);
 
 		writer.write(`switch (${discriminant}) `).inlineBlock(() => {
 			const entries: [string, ProtoDef.DataType][] = Object.entries(options.fields);

@@ -1,6 +1,6 @@
 import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "../codec.js";
-import NativeCodecs from "../codecs/index.js";
 import CodeBlockWriter from "code-block-writer";
+import { ProtocolRegistry, type ProtocolRegistryOptions } from "./ProtocolRegistry.js";
 
 const implTextDecoder = new TextDecoder();
 const implTextEncoder = new TextEncoder();
@@ -27,37 +27,24 @@ const compile = (code: string) => {
 	});
 };
 
-export class ProtocolGenerator {
-	natives: Record<string, Codec<unknown>> = {};
-	types: ProtoDef.Protocol = {};
+export class ProtocolGenerator extends ProtocolRegistry {
 	debug: boolean = false;
 
 	constructor({
-		natives,
-		types,
-		noStd,
 		debug,
-	}: {
-		natives?: Record<string, Codec<unknown>>;
-		noStd?: boolean;
-		types?: ProtoDef.Protocol;
+		...opts
+	}: ProtocolRegistryOptions & {
 		debug?: boolean;
 	} = {}) {
-		this.types = types || {};
+		super(opts);
+
 		this.debug = debug || false;
-
-		if (noStd !== true)
-			for (let [k, v] of Object.entries(NativeCodecs))
-				this.natives[k] = v;
-
-		for (let [k, v] of Object.entries(natives || {}))
-			this.natives[k] = v;
 	}
 
 	createContextFactory<Ctx extends Context<unknown>>(
 		writer: CodeBlockWriter,
 		base: Omit<Ctx, keyof Context<unknown>>,
-		onCodecInvoke: (codec: Codec<unknown>, ctx: Ctx) => void,
+		onCodecInvoke: (codec: Codec<unknown>, ctx: Ctx, id: string) => void,
 		root: string = "packet",
 	) {
 		// == Packeting ==
@@ -93,6 +80,11 @@ export class ProtocolGenerator {
 				};
 			}
 
+			return path;
+		};
+
+		const resolveRelativePathCode = (relativePath: string) => {
+			const path = resolveRelativePath(relativePath);
 			return path[0]?.value + path.slice(1).map(s => s.type == "array" ? `[${s.value}]` : `.${s.value}`).join("");
 		};
 
@@ -116,13 +108,15 @@ export class ProtocolGenerator {
 				const [id, options] = typeof type === "string" ? [type, null] : type;
 				const newCtx = create(options);
 
-				if (id in this.natives) {
+				if (!(id in this.types)) throw new Error(`Unknown data type: ${id}`);
+
+				const typeDef = this.types[id]!;
+
+				if (typeDef === "native") {
 					if (this.debug) writer.writeLine(`// < ${id} >`);
-					onCodecInvoke(this.natives[id]!, newCtx);
+					onCodecInvoke(this.natives[id]!, newCtx, id);
 					if (this.debug) writer.writeLine(`// </ ${id} >`).blankLine();
-				} else if (id in this.types)
-					invokeDataType(this.types[id]!);
-				else throw new Error(`Unknown data type: ${id}`);
+				} else invokeDataType(typeDef);
 			};
 
 			const ctx = {
@@ -132,6 +126,7 @@ export class ProtocolGenerator {
 				getPath,
 				getPacket,
 				resolveRelativePath,
+				resolveRelativePathCode,
 				withNewPacket,
 				withTempVar,
 			} as Context<unknown>;

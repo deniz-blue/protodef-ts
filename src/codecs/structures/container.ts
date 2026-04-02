@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir, type IRNode } from "../../typegen/ir.js";
 
 export type ContainerField = {
 	name: string;
@@ -56,6 +57,30 @@ export const container: Codec<ContainerArgs> = {
 		for (const field of options) {
 			withNewPacket(field.anon ? getPacket() : `${getPacket()}[${JSON.stringify(field.name)}]`, () => {
 				writer.writeLine(`// calculating size for field ${field.anon ? "(anon)" : JSON.stringify(field.name)}`);
+				invokeDataType(field.type);
+			}, field.anon ? undefined : { value: field.name, type: "object" });
+		}
+	},
+
+	getIR: ({ options, getIR }) => {
+		const fields: Record<string, IRNode> = {};
+
+		for (const field of options) {
+			const fieldIR = getIR(field.type);
+			if (field.anon) {
+				if (fieldIR.kind !== "object") throw new Error("Anon fields must be objects");
+				Object.assign(fields, fieldIR.fields);
+			} else {
+				fields[field.name] = fieldIR;
+			}
+		}
+
+		return ir.object(fields);
+	},
+
+	preprocessTypeGen({ withNewPacket, invokeDataType, options }) {
+		for (const field of options) {
+			withNewPacket("", () => {
 				invokeDataType(field.type);
 			}, field.anon ? undefined : { value: field.name, type: "object" });
 		}

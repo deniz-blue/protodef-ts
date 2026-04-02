@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir } from "../../typegen/ir.js";
 
 export type BitflagsArgs<Big extends boolean = false> = {
 	type: ProtoDef.DataType;
@@ -93,5 +94,16 @@ export const bitflags: Codec<BitflagsArgs> = {
 
 	encodedSize(writer, { options, invokeDataType }) {
 		invokeDataType(options.type);
+	},
+
+	getIR: ({ options }) => {
+		const { flags, big } = options;
+		const fields = Array.isArray(flags) ? flags : Object.keys(flags);
+		const fieldTypes = Object.fromEntries(fields.map(name => [name, ir.identifier("boolean")]));
+		const valueType = big ? ir.identifier("bigint") : ir.identifier("number");
+		return ir.object({
+			...fieldTypes,
+			_value: valueType,
+		});
 	},
 };

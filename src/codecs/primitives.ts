@@ -20,6 +20,20 @@ export const Void: Codec = {
 	encoder: (writer, { getPacket }) => {
 		writer.writeLine(`// noop: ${getPacket()} == void`);
 	},
+
+	getIR: () => ({
+		kind: "union",
+		types: [
+			{
+				kind: "identifier",
+				identifier: "null",
+			},
+			{
+				kind: "identifier",
+				identifier: "undefined",
+			},
+		],
+	}),
 };
 
 export const bool: Codec = {
@@ -33,6 +47,11 @@ export const bool: Codec = {
 	encoder: (writer, { getPacket, buffer, offset }) => {
 		writer.writeLine(`${buffer}[${offset}++] = +${getPacket()}`);
 	},
+
+	getIR: () => ({
+		kind: "identifier",
+		identifier: "boolean",
+	}),
 };
 
 export const cstring: Codec = {
@@ -65,4 +84,9 @@ export const cstring: Codec = {
 		writer.writeLine(`${size} += ${textByteLength}(${getPacket()})`);
 		writer.writeLine(`${size}++`);
 	},
+
+	getIR: () => ({
+		kind: "identifier",
+		identifier: "string",
+	}),
 };

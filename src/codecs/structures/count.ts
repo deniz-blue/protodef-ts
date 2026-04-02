@@ -18,8 +18,8 @@ export const count: Codec<CountArgs> = {
 		invokeDataType(options.type);
 	},
 
-	encoder: (writer, { withNewPacket, options, resolveRelativePath, invokeDataType }) => {
-		withNewPacket(`${resolveRelativePath(options.countFor)}.length`, () => {
+	encoder: (writer, { withNewPacket, options, resolveRelativePathCode, invokeDataType }) => {
+		withNewPacket(`${resolveRelativePathCode(options.countFor)}.length`, () => {
 			invokeDataType(options.type);
 		});
 	},

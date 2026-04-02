@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir } from "../../typegen/ir.js";
 
 export type BitfieldField = {
 	name: string;
@@ -95,5 +96,10 @@ export const bitfield: Codec<BitfieldArgs> = {
 
 			writer.writeLine(`${offset} += ${totalBytes}`);
 		});
-	}
+	},
+
+	getIR: ({ options }) => {
+		const fields = options.map(f => f.name);
+		return ir.object(Object.fromEntries(fields.map(name => [name, ir.identifier("number")])));
+	},
 };

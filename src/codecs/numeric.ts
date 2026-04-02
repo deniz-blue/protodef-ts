@@ -41,6 +41,13 @@ const dataViewImpl = (
 		encodedSize: (writer, { size }) => {
 			writer.writeLine(`${size} += ${byteLength}`);
 		},
+
+		getIR: () => {
+			return {
+				kind: "identifier",
+				identifier: big ? "bigint" : "number",
+			};
+		},
 	};
 };
 

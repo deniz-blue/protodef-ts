@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir } from "../../typegen/ir.js";
 
 export type MapperArgs = {
 	type: ProtoDef.DataType;
@@ -14,7 +15,6 @@ declare global {
 }
 
 export const mapper: Codec<MapperArgs> = {
-
 	encoder(writer, {
 		options,
 		invokeDataType,
@@ -45,4 +45,9 @@ export const mapper: Codec<MapperArgs> = {
 	encodedSize(writer, { options, invokeDataType }) {
 		invokeDataType(options.type);
 	},
+
+	getIR: ({ options }) => {
+		const mappingValues = Object.values(options.mappings);
+		return ir.union(mappingValues.map(v => ir.fromConstant(v)));
+	}
 };

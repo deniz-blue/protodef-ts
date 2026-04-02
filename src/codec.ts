@@ -1,4 +1,5 @@
 import CodeBlockWriter from "code-block-writer";
+import type { IRNode } from "./typegen/ir.js";
 
 export interface PathSegment {
 	value: string;
@@ -11,7 +12,9 @@ export interface Context<TOptions> {
 	/** Returns the variable name for the current packet/value */
 	getPacket(): string;
 	/** Resolves a relative path like "../field" into an absolute variable identifier like "packet.field" */
-	resolveRelativePath(relativePath: string): string;
+	resolveRelativePathCode(relativePath: string): string;
+	/** Resolves a relative path like "../field" into a path segment array */
+	resolveRelativePath(relativePath: string): PathSegment[];
 	/** Creates a temporary variable with a given hint and lifetime */
 	withTempVar(hint: string, lifetime: (variable: string) => void): void;
 	/** Changes packet variable for the duration of the given function */
@@ -55,21 +58,31 @@ export interface EncodedSizeContext<TOptions> extends Context<TOptions> {
 	textByteLength: string;
 };
 
-/** ! experimental */
-interface TypeGenContext<TOptions> {
+export interface PreprocessTypeGenContext<TOptions> extends Context<TOptions> {
+	schemas: ProtoDef.DataType[];
+};
+
+export interface GetIRContext<TOptions> {
 	/** The options for the current context */
 	options: TOptions;
-	/** The current type name */
-	typeName: string;
-
-	fork(relativePath: string, cases: Record<string, ProtoDef.DataType>): void;
+	/** Get IR node for a given data type */
+	getIR(type: ProtoDef.DataType): IRNode;
 };
 
-export interface Codec<TOptions = void> {
-	/** Buffer to object */
-	decoder(writer: CodeBlockWriter, ctx: DecoderContext<TOptions>): void;
-	/** Object to buffer */
-	encoder(writer: CodeBlockWriter, vars: EncoderContext<TOptions>): void;
-	/** Object to buffer size */
-	encodedSize(writer: CodeBlockWriter, ctx: EncodedSizeContext<TOptions>): void;
-};
+declare global {
+	namespace ProtoDef {
+		export interface Codec<TOptions = void> {
+			/** Buffer to object */
+			decoder(writer: CodeBlockWriter, ctx: DecoderContext<TOptions>): void;
+			/** Object to buffer */
+			encoder(writer: CodeBlockWriter, vars: EncoderContext<TOptions>): void;
+			/** Object to buffer size */
+			encodedSize(writer: CodeBlockWriter, ctx: EncodedSizeContext<TOptions>): void;
+
+			getIR?(ctx: GetIRContext<TOptions>): IRNode;
+			preprocessTypeGen?(ctx: PreprocessTypeGenContext<TOptions>): void;
+		}
+	}
+}
+
+export type Codec<TOptions = void> = ProtoDef.Codec<TOptions>;

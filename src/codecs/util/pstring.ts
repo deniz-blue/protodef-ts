@@ -19,7 +19,7 @@ export const pstring: Codec<PStringArgs> = {
 	decoder: (writer, {
 		withTempVar,
 		options,
-		resolveRelativePath,
+		resolveRelativePathCode,
 		invokeDataType,
 		withNewPacket,
 		buffer,
@@ -32,7 +32,7 @@ export const pstring: Codec<PStringArgs> = {
 			if ("count" in options && typeof options.count == "number")
 				writer.writeLine(`let ${length} = ${options.count}`);
 			else if ("count" in options && typeof options.count == "string")
-				writer.writeLine(`let ${length} = ${resolveRelativePath(options.count)}`);
+				writer.writeLine(`let ${length} = ${resolveRelativePathCode(options.count)}`);
 			else if ("countType" in options) {
 				writer.writeLine(`let ${length}`);
 				withNewPacket(length, () => {
@@ -76,4 +76,9 @@ export const pstring: Codec<PStringArgs> = {
 				.writeLine(`${offset} += ${byteLength}`);
 		});
 	},
+
+	getIR: () => ({
+		kind: "identifier",
+		identifier: "string",
+	}),
 };

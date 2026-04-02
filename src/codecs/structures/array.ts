@@ -1,4 +1,5 @@
 import type { Codec } from "../../codec.js";
+import { ir } from "../../typegen/ir.js";
 
 export type ArrayArgs = ProtoDef.ICountable & { type: ProtoDef.DataType };
 
@@ -14,7 +15,7 @@ export const array: Codec<ArrayArgs> = {
 	decoder(writer, {
 		withTempVar,
 		options,
-		resolveRelativePath,
+		resolveRelativePathCode,
 		invokeDataType,
 		withNewPacket,
 		getPacket,
@@ -23,7 +24,7 @@ export const array: Codec<ArrayArgs> = {
 			if ("count" in options && typeof options.count == "number")
 				writer.writeLine(`let ${count} = ${options.count}`);
 			else if ("count" in options && typeof options.count == "string")
-				writer.writeLine(`let ${count} = ${resolveRelativePath(options.count)}`);
+				writer.writeLine(`let ${count} = ${resolveRelativePathCode(options.count)}`);
 			else if ("countType" in options) {
 				writer.writeLine(`let ${count}`);
 				withNewPacket(count, () => {
@@ -77,5 +78,16 @@ export const array: Codec<ArrayArgs> = {
 				}, { type: "array", value: i });
 			});
 		});
+	},
+
+	getIR: ({ options, getIR }) => {
+		const elementIR = getIR(options.type);
+		return ir.generic("Array", [elementIR]);
+	},
+
+	preprocessTypeGen({ withNewPacket, invokeDataType, options }) {
+		withNewPacket("", () => {
+			invokeDataType(options.type);
+		}, { type: "array", value: "" });
 	},
 };
