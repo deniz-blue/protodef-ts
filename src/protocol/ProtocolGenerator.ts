@@ -1,6 +1,8 @@
 import type { Codec, Context, DecoderContext, EncodedSizeContext, EncoderContext, PathSegment } from "../codec.js";
 import CodeBlockWriter from "code-block-writer";
 import { ProtocolRegistry, type ProtocolRegistryOptions } from "./ProtocolRegistry.js";
+import { generateIR } from "../typegen/generateIR.js";
+import { writeIR } from "../typegen/ir.js";
 
 const implTextDecoder = new TextDecoder();
 const implTextEncoder = new TextEncoder();
@@ -307,5 +309,22 @@ export class ProtocolGenerator extends ProtocolRegistry {
 			console.error("Generated code was:", code);
 			throw e;
 		}
+	}
+
+	/** Generates TypeScript type definition for a data type */
+	generateTypeDefinition(targetTypeId: string): string {
+		const ir = generateIR(this, targetTypeId);
+		const writer = new CodeBlockWriter();
+		writer.write(`export type ${targetTypeId} = `);
+		return writeIR(writer, ir).write(";").toString();
+	}
+
+	/** Generates TypeScript type definitions for all data types */
+	generateAllTypeDefinitions(): string {
+		const writer = new CodeBlockWriter();
+		for (const typeId of Object.entries(this.types).map(([id, def]) => (typeof def === "string" && def === "native") ? null : id).filter(Boolean) as string[]) {
+			writer.writeLine(this.generateTypeDefinition(typeId)).blankLine();
+		}
+		return writer.toString();
 	}
 };

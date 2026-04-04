@@ -2,14 +2,13 @@
 
 A modern [ProtoDef](https://github.com/ProtoDef-io/ProtoDef) implementation in TypeScript.
 
-- Does not use NodeJS Buffer (or any other NodeJS API)
 - All ESM modules
+- Does not use NodeJS Buffer (or any other NodeJS API - fully compatible with browsers)
 - Supports all ProtoDef native types
-- Smart [streaming](#streaming) feature
-
-This library works by doing **code generation**.
-
-It's also almost as fast as compiled node-protodef!
+- Generates efficient code for encoding and decoding
+- [Stream Decoding](#streaming) without partial reads
+- [TypeScript type generation](#type-generation) (handles `switch` very well)
+- Almost as fast as compiled `node-protodef`!
 
 ## Usage
 
@@ -66,7 +65,7 @@ if (!state.done) {
 }
 ```
 
-A stream decoder generator function takes in a `StreamDecodeRuntime` and returns a generator.
+A stream decoder generator function takes in a `StreamDecodeRuntime` and returns a **generator**.
 
 The returned generator uses the buffer, offset, available amount and the data view from the provided shared runtime object.
 
@@ -77,7 +76,7 @@ When a packet is successfully decoded, the generator returns the decoded packet.
 You can use the `SimpleRuntime` class to use the stream decoder more easily:
 
 ```ts
-import { SimpleRuntime } from 'protodef-next';
+import { SimpleRuntime } from 'protodef-next/streaming';
 
 const streamDecoder = protocol.streamDecoder("myPacket");
 const runtime = new SimpleRuntime(streamDecoder);
@@ -89,6 +88,41 @@ runtime.push(/* Uint8Array */ chunk);
 const packets = runtime.decode();
 
 // 3. Repeat until the stream ends
+```
+
+Or you can import `createDecodeTransform` to create a web transform stream that decodes packets from a byte stream:
+
+```ts
+import { createDecodeTransform } from 'protodef-next/streaming';
+
+const streamDecoder = protocol.streamDecoder("myPacket");
+const decodeTransform = createDecodeTransform(streamDecoder);
+
+// Pipe a byte stream into the transform to get a packet stream
+byteStream.pipeThrough(decodeTransform).pipeTo(packetStream);
+```
+
+## Type Generation
+
+`protodef-next` can generate TypeScript types for your protocol schema. The generated types are very accurate and reflect the actual structure of the decoded packets. They handle conditional types, the bane of type generation, very well.
+
+```ts
+import { ProtocolGenerator } from 'protodef-next';
+
+const protocol = new ProtocolGenerator({
+	types: {
+		myPacket: ["container", [
+			{ name: "field1", type: "varint" },
+			{ name: "field2", type: "cstring" },
+		]],
+	},
+});
+
+const types = protocol.generateTypeDefinition("myPacket");
+// export type myPacket = {
+//   field1: number;
+//   field2: string;
+// };
 ```
 
 ## Codecs

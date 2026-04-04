@@ -2,6 +2,7 @@
 	"include": ["src/**/*"],
 	"compilerOptions": {
 		"outDir": "./dist",
+		"rootDir": ".",
 		"module": "nodenext",
 		"target": "esnext",
 		"sourceMap": true,
