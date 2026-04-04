@@ -1,5 +1,11 @@
 # protodef-next
 
+[![Test](https://github.com/deniz-blue/protodef-next/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/deniz-blue/protodef-next/actions/workflows/test.yml)
+[![NPM Version](https://img.shields.io/npm/v/protodef-next)](https://npmx.dev/package/protodef-next)
+[![Docs](https://img.shields.io/badge/view-documentation-blue)](https://npmx.dev/package-docs/protodef-next/v/latest)
+![GitHub last commit](https://img.shields.io/github/last-commit/deniz-blue/protodef-next)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A modern [ProtoDef](https://github.com/ProtoDef-io/ProtoDef) implementation in TypeScript.
 
 - All ESM modules
@@ -9,6 +15,12 @@ A modern [ProtoDef](https://github.com/ProtoDef-io/ProtoDef) implementation in T
 - [Stream Decoding](#streaming) without partial reads
 - [TypeScript type generation](#type-generation) (handles `switch` very well)
 - Almost as fast as compiled `node-protodef`!
+
+## Installation
+
+```bash
+pnpm install protodef-next
+```
 
 ## Usage
 

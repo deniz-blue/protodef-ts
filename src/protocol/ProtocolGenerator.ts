@@ -6,7 +6,7 @@ import { writeIR } from "../typegen/ir.js";
 
 const implTextDecoder = new TextDecoder();
 const implTextEncoder = new TextEncoder();
-export const implTextByteLength = (str: string) => {
+const implTextByteLength = (str: string) => {
 	let s = str.length;
 	for (let i = str.length - 1; i >= 0; i--) {
 		let code = str.charCodeAt(i);
@@ -29,13 +29,22 @@ const compile = (code: string) => {
 	});
 };
 
+/**
+ * ProtocolGenerator is the main class of this library.
+ * It provides methods for generating encoder, decoder, encoded size and stream decoder functions as well as TypeScript type definitions for the defined data types.
+ */
 export class ProtocolGenerator extends ProtocolRegistry {
+	/**
+	 * If true, the generated code will contain comments indicating the current data type being processed and the temporary variables being used.
+	 * This can be useful for debugging but will make the generated code larger. Default is false.
+	 */
 	debug: boolean = false;
 
 	constructor({
 		debug,
 		...opts
 	}: ProtocolRegistryOptions & {
+		/** See {@link ProtocolGenerator.debug} */
 		debug?: boolean;
 	} = {}) {
 		super(opts);
@@ -43,6 +52,16 @@ export class ProtocolGenerator extends ProtocolRegistry {
 		this.debug = debug || false;
 	}
 
+	/**
+	 * Internal method to create context factory for code generation.
+	 * This is used to create the context objects that are passed to codecs during code generation.
+	 * Keeps track of the current packet variable, path and temporary variables, and provides utility methods for codecs to use during code generation.
+	 * @param writer Writer to use for generating code
+	 * @param base Extra properties to be included in the context object passed to codecs
+	 * @param onCodecInvoke Callback function that will be called whenever a codec is invoked during code generation
+	 * @param root Packet variable name, default is "packet"
+	 * @returns A function that creates context object
+	 */
 	createContextFactory<Ctx extends Context<unknown>>(
 		writer: CodeBlockWriter,
 		base: Omit<Ctx, keyof Context<unknown>>,
@@ -317,14 +336,5 @@ export class ProtocolGenerator extends ProtocolRegistry {
 		const writer = new CodeBlockWriter();
 		writer.write(`export type ${targetTypeId} = `);
 		return writeIR(writer, ir).write(";").toString();
-	}
-
-	/** Generates TypeScript type definitions for all data types */
-	generateAllTypeDefinitions(): string {
-		const writer = new CodeBlockWriter();
-		for (const typeId of Object.entries(this.types).map(([id, def]) => (typeof def === "string" && def === "native") ? null : id).filter(Boolean) as string[]) {
-			writer.writeLine(this.generateTypeDefinition(typeId)).blankLine();
-		}
-		return writer.toString();
 	}
 };

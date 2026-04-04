@@ -1,9 +1,3 @@
-export interface NamespacedProtocol {
-	types?: Record<string, globalThis.ProtoDef.DataType>;
-	// Headache. -d
-	[namespace: string]: NamespacedProtocol | Record<string, globalThis.ProtoDef.DataType>;
-};
-
 declare global {
 	namespace ProtoDef {
 		export type NativeDataType = DataTypeWithoutArgs<"native">;

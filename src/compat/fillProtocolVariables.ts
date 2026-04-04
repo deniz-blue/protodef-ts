@@ -1,4 +1,8 @@
-import type { NamespacedProtocol } from "../types.js";
+export interface NamespacedProtocol {
+	types?: Record<string, globalThis.ProtoDef.DataType>;
+	// Headache. -d
+	[namespace: string]: NamespacedProtocol | Record<string, globalThis.ProtoDef.DataType>;
+};
 
 export const fillProtocolVariables = (
 	protocol: NamespacedProtocol,

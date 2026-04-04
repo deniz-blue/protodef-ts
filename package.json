@@ -1,12 +1,16 @@
 {
 	"name": "protodef-next",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "A modern ProtoDef implementation in TypeScript",
 	"author": "deniz.blue <deniz@deniz.blue>",
 	"type": "module",
 	"files": [
 		"/dist"
 	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/deniz-blue/protodef-next.git"
+	},
 	"types": "./dist/src/index.d.ts",
 	"exports": {
 		".": "./dist/src/index.js",
