@@ -129,13 +129,38 @@ export class ProtocolGenerator extends ProtocolRegistry {
 				const [id, options] = typeof type === "string" ? [type, null] : type;
 				const newCtx = create(options);
 
-				if (!(id in this.types)) throw new Error(`Unknown data type: ${id}`);
+				if (!(id in this.types)) {
+					console.error("[ProtocolGenerator] Unknown data type during invoke", {
+						id,
+						path: getPath().map(p => p.value).join("."),
+						knownTypeCount: Object.keys(this.types).length,
+					});
+					throw new Error(`Unknown data type: ${id}`);
+				}
 
-				const typeDef = this.types[id]!;
+				const typeDef = this.types[id];
+				if (typeDef === undefined) {
+					console.error("[ProtocolGenerator] Type definition resolved to undefined", {
+						id,
+						path: getPath().map(p => p.value).join("."),
+						options,
+					});
+					throw new Error(`Type definition is undefined for data type: ${id}`);
+				}
 
 				if (typeDef === "native") {
+					const nativeCodec = this.natives[id];
+					if (!nativeCodec) {
+						console.error("[ProtocolGenerator] Native codec missing", {
+							id,
+							path: getPath().map(p => p.value).join("."),
+							knownNativeCount: Object.keys(this.natives).length,
+						});
+						throw new Error(`Native codec not found for data type: ${id}`);
+					}
+
 					if (this.debug) writer.writeLine(`// < ${id} >`);
-					onCodecInvoke(this.natives[id]!, newCtx, id);
+					onCodecInvoke(nativeCodec, newCtx, id);
 					if (this.debug) writer.writeLine(`// </ ${id} >`).blankLine();
 				} else invokeDataType(typeDef);
 			};

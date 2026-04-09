@@ -17,6 +17,9 @@ declare global {
 	}
 }
 
+const numberIR = { kind: "identifier", identifier: "number" } as const;
+const bigintIR = { kind: "identifier", identifier: "bigint" } as const;
+
 const dataViewImpl = (
 	getMethod: keyof DataView & `get${string}`,
 	setMethod: keyof DataView & `set${string}`,
@@ -43,10 +46,7 @@ const dataViewImpl = (
 		},
 
 		getIR: () => {
-			return {
-				kind: "identifier",
-				identifier: big ? "bigint" : "number",
-			};
+			return big ? bigintIR : numberIR;
 		},
 	};
 };
@@ -62,6 +62,8 @@ export const i8: Codec = {
 	},
 
 	encodedSize: (writer, { size }) => void writer.writeLine(`${size}++`),
+
+	getIR: () => numberIR,
 };
 
 export const u8: Codec = {
@@ -75,6 +77,8 @@ export const u8: Codec = {
 	},
 
 	encodedSize: (writer, { size }) => void writer.writeLine(`${size}++`),
+
+	getIR: () => numberIR,
 };
 
 export const li8 = dataViewImpl("getInt8", "setInt8", 1, true, false);

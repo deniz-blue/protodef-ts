@@ -425,5 +425,76 @@ describe("typegen", () => {
 			expect(hasTrue).toBe(true);
 			expect(hasFalse).toBe(true);
 		});
+
+		it("does not blow up unions for repeated switches on the same discriminator", () => {
+			const registry = new ProtocolRegistry({
+				types: {
+					packet: ["container", [
+						{ name: "target", type: "varint" },
+						{ name: "mouse", type: "varint" },
+						{
+							name: "x", type: [
+								"switch",
+								{
+									compareTo: "mouse",
+									fields: {
+										"2": "f32"
+									},
+									default: "void"
+								}
+							]
+						},
+						{
+							name: "y", type: [
+								"switch",
+								{
+									compareTo: "mouse",
+									fields: {
+										"2": "f32"
+									},
+									default: "void"
+								}
+							]
+						},
+						{
+							name: "z", type: [
+								"switch",
+								{
+									compareTo: "mouse",
+									fields: {
+										"2": "f32"
+									},
+									default: "void"
+								}
+							]
+						},
+						{
+							name: "hand", type: [
+								"switch",
+								{
+									compareTo: "mouse",
+									fields: {
+										"0": "varint",
+										"2": "varint"
+									},
+									default: "void"
+								}
+							]
+						},
+						{ name: "sneaking", type: "bool" }
+					]]
+				}
+			});
+
+			const irNode = generateIR(registry, "packet");
+			expect(irNode.kind).toBe("union");
+			const unionNode = irNode as any;
+
+			// Expected cases by discriminator:
+			// mouse=2 => x/y/z + hand
+			// mouse=0 => hand only
+			// mouse=other => no optional fields
+			expect(unionNode.types).toHaveLength(3);
+		});
 	});
 });
